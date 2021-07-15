@@ -197,7 +197,6 @@ def ping() {
 // Forces the configuration to be resent to the device the next time it wakes up.
 def refresh() {
 	logForceWakeupMessage "The sensor data will be refreshed the next time the device wakes up."
-	state.lastBattery = null
 	if (!state.refreshSensors) {
 		state.refreshSensors = true
 	} else {
@@ -248,7 +247,8 @@ def zwaveEvent(hubitat.zwave.commands.wakeupv1.WakeUpNotification cmd) {
 		cmds += getConfigCmds()
 	}
 
-	if (canReportBattery()) {
+	if (state.refreshAll || !device.currentValue("battery")) {
+		logDebug "Requesting Battery Report"
 		cmds << batteryGetCmd()
 	}
 
@@ -276,7 +276,6 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
 	} else if (val < 1) {
 		val = 1
 	}
-	state.lastBattery = new Date().time
 
 	logDebug "Battery ${val}%"
 	sendEvent(getEventMap("battery", val, null, null, "%"))
@@ -451,10 +450,6 @@ private static getCommandClassVersions() {
 	]
 }
 
-private canReportBattery() {
-	return state.refreshSensors || (!isDuplicateCommand(state.lastBattery, (12 * 60 * 60 * 1000)))
-}
-
 private getPendingChanges() {
 	return configParams.count { "${it.value}" != "${getParamStoredValue(it.num)}" }
 }
@@ -493,11 +488,11 @@ private getConfigParams() {
 }
 
 private getBatteryReportThresholdParam() {
-	return getParam(1, "Battery report threshold(1% - 20%)", 1, 10, null,"1..20")
+	return getParam(1, "Battery report threshold(1 - 20: 1% - 20%)", 1, 10, null,"1..20")
 }
 
 private getLowBatteryAlarmReportParam() {
-	return getParam(2, "Low battery alarm report(5% - 20%)", 1, 5, null, "5..20")
+	return getParam(2, "Low battery alarm report(5 - 20: 5% - 20%)", 1, 5, null, "5..20")
 }
 
 private getSensorModeWhenClosedParam() {
@@ -505,23 +500,23 @@ private getSensorModeWhenClosedParam() {
 }
 
 private getDelayReportSecondsWhenClosedParam() {
-	return getParam(4, "Delay in seconds with ON command report(door closed)", 2, 0, null, "0..3600")
+	return getParam(4, "Delay in seconds with ON command report(door closed, 0 - 3600)", 2, 0, null, "0..3600")
 }
 
 private getDelayReportSecondsWhenOpenedParam() {
-	return getParam(5, "Delay in seconds with OFF command report(door open)", 2, 0, null, "0..3600")
+	return getParam(5, "Delay in seconds with OFF command report(door open, 0 - 3600)", 2, 0, null, "0..3600")
 }
 
 private getMinTemperatureOffsetParam() {
-	return getParam(6, "Minimum Temperature change to report(0.5℃/0.9°F - 5.0℃/9°F)", 1, 10, null, "5..50")
+	return getParam(6, "Minimum Temperature change to report(5 - 50: 0.5℃/0.9°F - 5.0℃/9°F)", 1, 10, null, "5..50")
 }
 
 private getMinHumidityOffsetParam() {
-	return getParam(7, "Minimum Humidity change to report(5% - 20%)", 1, 10, null, "5..20")
+	return getParam(7, "Minimum Humidity change to report(5 - 20: 5% - 20%)", 1, 10, null, "5..20")
 }
 
 private getTemperatureUpperWatermarkParam() {
-	return getParam(8, "Temperature Upper Watermark value(0,Disabled; 1℃/33.8°F-50℃/122.0°F)", 2, 0, null, "0..50")
+	return getParam(8, "Temperature Upper Watermark value(0,Disabled; 1 - 50: 1℃/33.8°F-50℃/122.0°F)", 2, 0, null, "0..50")
 }
 
 private getTemperatureUpperControlParam() {
@@ -529,7 +524,7 @@ private getTemperatureUpperControlParam() {
 }
 
 private getTemperatureLowerWatermarkParam() {
-	return getParam(10, "Temperature Lower Watermark value(0,Disabled; 1℃/33.8°F - 50℃/122.0°F)", 2, 0, null, "0..50")
+	return getParam(10, "Temperature Lower Watermark value(0,Disabled; 1 - 50: 1℃/33.8°F - 50℃/122.0°F)", 2, 0, null, "0..50")
 }
 
 private getTemperatureLowerControlParam() {
@@ -537,7 +532,7 @@ private getTemperatureLowerControlParam() {
 }
 
 private getHumidityUpperWatermarkParam() {
-	return getParam(12, "Humidity Upper Watermark value(0,Disabled; 1% - 100%)", 1, 0, null, "0..100")
+	return getParam(12, "Humidity Upper Watermark value(0,Disabled; 1 - 100: 1% - 100%)", 1, 0, null, "0..100")
 }
 
 private getHumidityUpperControlParam() {
@@ -545,7 +540,7 @@ private getHumidityUpperControlParam() {
 }
 
 private getHumidityLowerWatermarkParam() {
-	return getParam(14, "Humidity Lower Watermark value(0,Disabled; 1%-100%)", 1, 0, null, "0..100")
+	return getParam(14, "Humidity Lower Watermark value(0,Disabled; 1 - 100: 1%-100%)", 1, 0, null, "0..100")
 }
 
 private getHumidityLowerControlParam() {
@@ -557,11 +552,11 @@ private getSwitchTemperatureUnitParam() {
 }
 
 private getTemperatureOffsetParam() {
-	return getParam(17, "Offset value for temperature(-10℃/14.0°F - 10℃/50.0°F)", 1, 0,  null, "-100..100")
+	return getParam(17, "Offset value for temperature(-100 - 100: -10℃/14.0°F - 10℃/50.0°F)", 1, 0,  null, "-100..100")
 }
 
 private getHumidityOffsetParam() {
-	return getParam(18, "Offset value for humidity (-20% - 20%)", 1, 0,  null, "-20..20")
+	return getParam(18, "Offset value for humidity (-20 - 20: -20% - 20%)", 1, 0,  null, "-20..20")
 }
 
 private getAssociationGroupSettingParam() {
