@@ -1,5 +1,5 @@
 /**
- *     Minoston Door/Window Sensor v1.0.2(HUBITAT)
+ *     Minoston Door/Window Sensor v1.0.3(HUBITAT)
  *
  *  	Models: MSE30Z
  *
@@ -9,6 +9,10 @@
  *	Documentation:
  *
  *  Changelog:
+ *
+ *    1.0.3 (07/16/2021)
+ *     - change lastBatteryReport to record the time of fresh battery
+ *     - add lastBattery to record the battery value
  *
  *    1.0.2 (07/15/2021)
  *      - update ConfigParams as product designed
@@ -197,7 +201,9 @@ def ping() {
 // Forces the configuration to be resent to the device the next time it wakes up.
 def refresh() {
 	logForceWakeupMessage "The sensor data will be refreshed the next time the device wakes up."
-	if (!state.refreshSensors) {
+	state.lastBatteryReport = null
+	state.lastBattery = null
+	if (!state.refreshSensors) {	
 		state.refreshSensors = true
 	} else {
 		state.refreshConfig = true
@@ -247,8 +253,7 @@ def zwaveEvent(hubitat.zwave.commands.wakeupv1.WakeUpNotification cmd) {
 		cmds += getConfigCmds()
 	}
 
-	if (state.refreshAll || !device.currentValue("battery")) {
-		logDebug "Requesting Battery Report"
+	if (canReportBattery()) {
 		cmds << batteryGetCmd()
 	}
 
@@ -276,7 +281,8 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
 	} else if (val < 1) {
 		val = 1
 	}
-
+	state.lastBatteryReport = new Date().time
+	state.lastBattery = val
 	logDebug "Battery ${val}%"
 	sendEvent(getEventMap("battery", val, null, null, "%"))
 	return []
@@ -448,6 +454,10 @@ private static getCommandClassVersions() {
 		0x87: 1,  // Indicator
 		0x9F: 1   // Security 2
 	]
+}
+
+private canReportBattery() {
+	return state.refreshSensors || (!isDuplicateCommand(state.lastBatteryReport, (12 * 60 * 60 * 1000)))
 }
 
 private getPendingChanges() {
