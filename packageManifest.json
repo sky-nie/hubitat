@@ -9,7 +9,7 @@
       "id": "7c9452af-0609-4c8f-b769-5e9f6e849cf9",
       "name": "Minoston Door/Window Sensor",
       "namespace": "sky-nie",
-      "location": "https://raw.githubusercontent.com/sky-nie/minoston-door-window-sensor-hubitat/master/minoston-door-window-sensor-hubitat.groovy",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/master/minoston-door-window-sensor.src/minoston-door-window-sensor.groovy",
       "required": false
     }
   ]
