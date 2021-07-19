@@ -1,0 +1,16 @@
+{
+  "author": "winnie",
+  "gitHubUrl": "https://github.com/sky-nie",
+  "packages": [
+    {
+      "id": "856a2f91-c0d1-4565-9442-0dcfad2cd125",
+      "name": "Package Minoston",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/sky-nie/minoston-door-window-sensor-hubitat/master/packageManifest.json",
+      "description": "Package for Minoston",
+      "tags": [
+        "Doors & Windows","Temperature & Humidity"
+      ]
+    }
+  ]
+}
