@@ -9,7 +9,7 @@
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/master/packageManifest.json",
       "description": "Package for Minoston",
       "tags": [
-        "Doors & Windows","Temperature & Humidity"
+        "Doors & Windows","Temperature & Humidity","Lights & Switches"
       ]
     }
   ]

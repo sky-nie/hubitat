@@ -1,7 +1,7 @@
 {
   "packageName": "NewOne Package",
   "author": "winnie",
-  "version": "1.0",
+  "version": "1.0.3",
   "minimumHEVersion": "2.1.9",
   "dateReleased": "2021-07-19",
   "drivers": [
@@ -10,6 +10,13 @@
       "name": "Minoston Door/Window Sensor",
       "namespace": "sky-nie",
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/master/minoston-door-window-sensor.src/minoston-door-window-sensor.groovy",
+      "required": false
+    },
+    {
+      "id": "61240d60-5d1a-492d-a62e-17f84e2f4243",
+      "name": "Min Smart Plug Dimmer",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/master/min-smart-plug-dimmer.src/min-smart-plug-dimmer.groovy",
       "required": false
     }
   ]
