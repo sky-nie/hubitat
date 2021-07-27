@@ -1,5 +1,5 @@
 /**
- *     Minoston Door/Window Sensor v1.0.3(HUBITAT)
+ *     Minoston Door/Window Sensor v1.0.4(HUBITAT)
  *
  *  	Models: MSE30Z
  *
@@ -9,6 +9,10 @@
  *	Documentation:
  *
  *  Changelog:
+ *
+ *    1.0.4 (07/16/2021)
+ *     - Syntax format compliance adjustment
+ *     - fixed a bug for order repeated
  *
  *    1.0.3 (07/16/2021)
  *     - change lastBatteryReport to record the time of fresh battery
@@ -38,6 +42,17 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  */
+final  int NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06
+final  int NOTIFICATION_TYPE_HOME_SECURITY = 0x07
+
+final  int NOTIFICATION_EVENT_DOOR_WINDOW_OPEN = 0x16
+final  int NOTIFICATION_EVENT_DOOR_WINDOW_CLOSED = 0x17
+
+final  int NOTIFICATION_EVENT_STATE_IDLE = 0x00
+final  int NOTIFICATION_EVENT_INSTRUSION_WITH_LOCATION = 0x01
+final  int NOTIFICATION_EVENT_INSTRUSION = 0x02
+final  int NOTIFICATION_EVENT_TEMPERING = 0x03
+
 metadata {
 	definition(name: "Minoston Door/Window Sensor", namespace: "sky-nie", author: "winnie", ocfDeviceType: "x.com.st.d.sensor.contact", executeCommandsLocally: false) {
 		capability "Sensor"
@@ -52,7 +67,7 @@ metadata {
 		attribute "lastCheckIn", "string"
 		attribute "pendingChanges", "string"
 
-		fingerprint mfr: "0312", prod: "0713", model: "D100", deviceJoinName: "Minoston 3 in 1 Sensor"//MSE30Z
+		fingerprint mfr: "0312", prod: "0713", model: "D100", deviceJoinName: "Minoston 3-in-1 Sensor"//MSE30Z
 	}
 
 	tiles(scale: 2) {
@@ -66,15 +81,15 @@ metadata {
 		multiAttributeTile(name: "temperature", type: "generic", width: 6, height: 4, canChangeIcon: true) {
 			tileAttribute("device.temperature", key: "PRIMARY_CONTROL") {
 				attributeState "temperature", label: '${currentValue}°',
-						backgroundColors:[
-								[value: 31, color: "#153591"],
-								[value: 44, color: "#1e9cbb"],
-								[value: 59, color: "#90d2a7"],
-								[value: 74, color: "#44b621"],
-								[value: 84, color: "#f1d801"],
-								[value: 95, color: "#d04e00"],
-								[value: 96, color: "#bc2323"]
-						]
+					backgroundColors:[
+						[value: 31, color: "#153591"],
+						[value: 44, color: "#1e9cbb"],
+						[value: 59, color: "#90d2a7"],
+						[value: 74, color: "#44b621"],
+						[value: 84, color: "#f1d801"],
+						[value: 95, color: "#d04e00"],
+						[value: 96, color: "#bc2323"]
+					]
 			}
 		}
 
@@ -118,7 +133,7 @@ metadata {
 }
 
 def installed() {
-	logDebug "installed()..."
+	log.debug "installed()..."
 	state.refreshConfig = true
 	sendEvent(name: "checkInterval", value: checkInterval, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
 }
@@ -133,7 +148,7 @@ def updated() {
 	if (!isDuplicateCommand(state.lastUpdated, 5000)) {
 		state.lastUpdated = new Date().time
 
-		logTrace "updated()"
+		log.trace "updated()"
 		if (device.latestValue("checkInterval") != checkInterval) {
 			sendEvent(name: "checkInterval", value: checkInterval, displayed: false)
 		}
@@ -145,22 +160,19 @@ def updated() {
 }
 
 def configure() {
-	logTrace "configure()"
+	log.trace "configure()"
 
 	runIn(8, executeConfigure)
 }
 
 def executeConfigure() {
 	def cmds = [
-			sensorBinaryGetCmd(),
-			batteryGetCmd(),
-			sensorMultilevelGetCmd(tempSensorType),
-			sensorMultilevelGetCmd(lightSensorType)
+		sensorBinaryGetCmd(),
+		batteryGetCmd()
 	]
 
 	cmds += getConfigCmds()
-
-	sendCommands(delayBetween(cmds, 500))
+	sendHubCommand(cmds, 500)
 }
 
 private getConfigCmds() {
@@ -170,7 +182,7 @@ private getConfigCmds() {
 		if (state.refreshConfig) {
 			cmds << configGetCmd(param)
 		} else if ("${storedVal}" != "${param.value}") {
-			logDebug "Changing ${param.name}(#${param.num}) from ${storedVal} to ${param.value}"
+			log.debug "Changing ${param.name}(#${param.num}) from ${storedVal} to ${param.value}"
 			cmds << secureCmd(zwave.configurationV1.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: param.value))
 			cmds << configGetCmd(param)
 
@@ -187,15 +199,9 @@ private getConfigCmds() {
 	return cmds
 }
 
-private sendCommands(cmds) {
-	if (cmds) {
-		sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 100), hubitat.device.Protocol.ZWAVE))
-	}
-}
-
 // Required for HealthCheck Capability, but doesn't actually do anything because this device sleeps.
 def ping() {
-	logDebug "ping()"
+	log.debug "ping()"
 }
 
 // Forces the configuration to be resent to the device the next time it wakes up.
@@ -203,7 +209,7 @@ def refresh() {
 	logForceWakeupMessage "The sensor data will be refreshed the next time the device wakes up."
 	state.lastBatteryReport = null
 	state.lastBattery = null
-	if (!state.refreshSensors) {	
+	if (!state.refreshSensors) {
 		state.refreshSensors = true
 	} else {
 		state.refreshConfig = true
@@ -213,7 +219,7 @@ def refresh() {
 }
 
 private logForceWakeupMessage(msg) {
-	logDebug "${msg}  You can force the device to wake up immediately by holding the z-button for 2 seconds."
+	log.debug "${msg}  You can force the device to wake up immediately by holding the z-button for 2 seconds."
 }
 
 def parse(String description) {
@@ -223,7 +229,7 @@ def parse(String description) {
 		if (cmd) {
 			result += zwaveEvent(cmd)
 		} else {
-			logDebug "Unable to parse description: $description"
+			log.debug "Unable to parse description: $description"
 		}
 
 		sendEvent(name: "lastCheckIn", value: convertToLocalTimeString(new Date()), displayed: false)
@@ -246,7 +252,7 @@ def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cm
 }
 
 def zwaveEvent(hubitat.zwave.commands.wakeupv1.WakeUpNotification cmd) {
-	logDebug "Device Woke Up"
+	log.debug "Device Woke Up"
 
 	def cmds = []
 	if (state.refreshConfig || pendingChanges > 0) {
@@ -259,9 +265,9 @@ def zwaveEvent(hubitat.zwave.commands.wakeupv1.WakeUpNotification cmd) {
 
 	if (state.refreshSensors) {
 		cmds += [
-				sensorBinaryGetCmd(),
-				sensorMultilevelGetCmd(tempSensorType),
-				sensorMultilevelGetCmd(lightSensorType)
+			sensorBinaryGetCmd(),
+			sensorMultilevelGetCmd(tempSensorType),
+			sensorMultilevelGetCmd(lightSensorType)
 		]
 		state.refreshSensors = false
 	}
@@ -283,35 +289,31 @@ def zwaveEvent(hubitat.zwave.commands.batteryv1.BatteryReport cmd) {
 	}
 	state.lastBatteryReport = new Date().time
 	state.lastBattery = val
-	logDebug "Battery ${val}%"
+	log.debug "Battery ${val}%"
 	sendEvent(getEventMap("battery", val, null, null, "%"))
 	return []
 }
 
 def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport cmd) {
-	logTrace "SensorMultilevelReport: ${cmd}"
+	log.trace "SensorMultilevelReport: ${cmd}"
+	switch (cmd.sensorType) {
+		case tempSensorType:
+			def unit = cmd.scale ? "F" : "C"
+			def temp = convertTemperatureIfNeeded(cmd.scaledSensorValue, unit, cmd.precision)
+			sendEvent(getEventMap("temperature", temp, true, null, getTemperatureScale()))
+			break
 
-	if (cmd.sensorValue != [255, 255]) { // Bug in beta device
-		switch (cmd.sensorType) {
-			case tempSensorType:
-				def unit = cmd.scale ? "F" : "C"
-				def temp = convertTemperatureIfNeeded(cmd.scaledSensorValue, unit, cmd.precision)
-
-				sendEvent(getEventMap("temperature", temp, true, null, getTemperatureScale()))
-				break
-
-			case lightSensorType:
-				sendEvent(getEventMap( "humidity", cmd.scaledSensorValue, true, null, "%"))
-				break
-			default:
-				logDebug "Unknown Sensor Type: ${cmd.sensorType}"
-		}
+		case lightSensorType:
+			sendEvent(getEventMap( "humidity", cmd.scaledSensorValue, true, null, "%"))
+			break
+		default:
+			log.debug "Unknown Sensor Type: ${cmd.sensorType}"
 	}
 	return []
 }
 
 def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
-	logTrace "ConfigurationReport ${cmd}"
+	log.trace "ConfigurationReport ${cmd}"
 
 	runIn(4, refreshPendingChanges)
 
@@ -319,10 +321,10 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 	if (param) {
 		def val = cmd.scaledConfigurationValue
 
-		logDebug "${param.name}(#${param.num}) = ${val}"
+		log.debug "${param.name}(#${param.num}) = ${val}"
 		state["configParam${param.num}"] = val
 	} else {
-		logDebug "Parameter #${cmd.parameterNumber} = ${cmd.configurationValue}"
+		log.debug "Parameter #${cmd.parameterNumber} = ${cmd.configurationValue}"
 	}
 	return []
 }
@@ -332,21 +334,23 @@ def refreshPendingChanges() {
 }
 
 def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
-	logTrace "NotificationReport: $cmd"
+	log.trace "NotificationReport: $cmd"
 	def result = []
 
-	if (cmd.notificationType == 0x06 && cmd.event == 0x16) {
-		result << sensorValueEvent(1)
-	} else if (cmd.notificationType == 0x06 && cmd.event == 0x17) {
-		result << sensorValueEvent(0)
-	} else if (cmd.notificationType == 0x07) {
-		if (cmd.event == 0x00) {
+	if(cmd.notificationType == NOTIFICATION_TYPE_ACCESS_CONTROL){
+		if(cmd.event == NOTIFICATION_EVENT_DOOR_WINDOW_OPEN){
+			result << sensorValueEvent(1)
+		} else if(cmd.event == NOTIFICATION_EVENT_DOOR_WINDOW_CLOSED) {
+			result << sensorValueEvent(0)
+		}
+	} else if (cmd.notificationType == NOTIFICATION_TYPE_HOME_SECURITY) {
+		if (cmd.event == NOTIFICATION_EVENT_STATE_IDLE) {
 			result << createEvent(descriptionText: "$device.displayName covering was restored", isStateChange: true)
 			cmds = [zwave.batteryV1.batteryGet(), zwave.wakeUpV1.wakeUpNoMoreInformation()]
 			result << response(commands(cmds, 1000))
-		} else if (cmd.event == 0x01 || cmd.event == 0x02) {
+		} else if (cmd.event == NOTIFICATION_EVENT_INSTRUSION_WITH_LOCATION || cmd.event == NOTIFICATION_EVENT_INSTRUSION) {
 			result << sensorValueEvent(1)
-		} else if (cmd.event == 0x03) {
+		} else if (cmd.event == NOTIFICATION_EVENT_TEMPERING) {
 			result << createEvent(descriptionText: "$device.displayName covering was removed", isStateChange: true)
 		}
 	} else if (cmd.notificationType) {
@@ -361,7 +365,7 @@ def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
-	logTrace "SensorBinaryReport: $cmd"
+	log.trace "SensorBinaryReport: $cmd"
 	def map = [:]
 	map.value = cmd.sensorValue ? "open" : "closed"
 	map.name = "contact"
@@ -374,11 +378,11 @@ def zwaveEvent(hubitat.zwave.commands.sensorbinaryv2.SensorBinaryReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.indicatorv1.IndicatorReport cmd) {
-	logTrace "${cmd}"
+	log.trace "${cmd}"
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
-	logDebug "Ignored Command: $cmd"
+	log.debug "Ignored Command: $cmd"
 	return []
 }
 
@@ -386,11 +390,11 @@ private getEventMap(name, value, displayed=null, desc=null, unit=null) {
 	def isStateChange = (device.currentValue(name) != value)
 	displayed = (displayed == null ? isStateChange : displayed)
 	def eventMap = [
-			name: name,
-			value: value,
-			displayed: displayed,
-			isStateChange: isStateChange,
-			descriptionText: desc ?: "${device.displayName} ${name} is ${value}"
+		name: name,
+		value: value,
+		displayed: displayed,
+		isStateChange: isStateChange,
+		descriptionText: desc ?: "${device.displayName} ${name} is ${value}"
 	]
 
 	if (unit) {
@@ -398,7 +402,7 @@ private getEventMap(name, value, displayed=null, desc=null, unit=null) {
 		eventMap.descriptionText = "${eventMap.descriptionText}${unit}"
 	}
 	if (displayed) {
-		logDebug "${eventMap.descriptionText}"
+		log.debug "${eventMap.descriptionText}"
 	}
 	return eventMap
 }
@@ -428,7 +432,7 @@ private secureCmd(cmd) {
 			return cmd.format()
 		}
 	} catch (ex) {
-		return cmd.format()
+		throw new RuntimeException(ex)
 	}
 }
 
@@ -626,14 +630,14 @@ private static getSensorModeWhenCloseOptions() {
 
 private static getNotificationAndAssociationGroupControlOptions(int groupId){
 	return [
-			"0":"disable notification and association group basic set",
-			"1":"only notification report to lifeline group",
-			"2":"only basic set on to association group ${groupId}",
-			"3":"notification to lifeline and basic set on to association group ${groupId}",
-			"4":"only basic set off to association group ${groupId}",
-			"5":"notification to lifeline and basic off to association group ${groupId}",
-			"6":"basic set on and off to association group ${groupId}",
-			"7":"notification to lifeline and basic set on and off to association group ${groupId}"
+		"0":"disable notification and association group basic set",
+		"1":"only notification report to lifeline group",
+		"2":"only basic set on to association group ${groupId}",
+		"3":"notification to lifeline and basic set on to association group ${groupId}",
+		"4":"only basic set off to association group ${groupId}",
+		"5":"notification to lifeline and basic off to association group ${groupId}",
+		"6":"basic set on and off to association group ${groupId}",
+		"7":"notification to lifeline and basic set on and off to association group ${groupId}"
 	]
 }
 
@@ -660,12 +664,4 @@ private convertToLocalTimeString(dt) {
 
 private static isDuplicateCommand(lastExecuted, allowedMil) {
 	!lastExecuted ? false : (lastExecuted + allowedMil > new Date().time)
-}
-
-private logDebug(msg) {
-	log.debug "$msg"
-}
-
-private logTrace(msg) {
-	log.trace "$msg"
 }
