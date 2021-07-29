@@ -42,7 +42,7 @@ metadata {
 		capability "Configuration"
 		capability "Refresh"
 		capability "Health Check"
-		capability "booklocket57627.amperageMeasurement"
+		//capability "booklocket57627.amperageMeasurement"
 
 		attribute "lastCheckin", "string"
 		attribute "history", "string"
