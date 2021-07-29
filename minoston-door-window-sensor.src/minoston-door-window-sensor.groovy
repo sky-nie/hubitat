@@ -1,5 +1,5 @@
 /**
- *     Minoston Door/Window Sensor v1.0.4(HUBITAT)
+ *     Minoston Door/Window Sensor v1.0.5(HUBITAT)
  *
  *  	Models: MSE30Z
  *
@@ -9,6 +9,9 @@
  *	Documentation:
  *
  *  Changelog:
+ *
+ *    1.0.5 (07/28/2021)
+ *     - omitted  all the parameters related to associations group
  *
  *    1.0.4 (07/16/2021)
  *     - Syntax format compliance adjustment
@@ -68,57 +71,6 @@ metadata {
 		attribute "pendingChanges", "string"
 
 		fingerprint mfr: "0312", prod: "0713", model: "D100", deviceJoinName: "Minoston 3-in-1 Sensor"//MSE30Z
-	}
-
-	tiles(scale: 2) {
-		multiAttributeTile(name: "contact", type: "generic", width: 6, height: 4) {
-			tileAttribute("device.contact", key: "PRIMARY_CONTROL") {
-				attributeState("open", label: '${name}', icon: "st.contact.contact.open", backgroundColor: "#e86d13")
-				attributeState("closed", label: '${name}', icon: "st.contact.contact.closed", backgroundColor: "#00A0DC")
-			}
-		}
-
-		multiAttributeTile(name: "temperature", type: "generic", width: 6, height: 4, canChangeIcon: true) {
-			tileAttribute("device.temperature", key: "PRIMARY_CONTROL") {
-				attributeState "temperature", label: '${currentValue}°',
-					backgroundColors:[
-						[value: 31, color: "#153591"],
-						[value: 44, color: "#1e9cbb"],
-						[value: 59, color: "#90d2a7"],
-						[value: 74, color: "#44b621"],
-						[value: 84, color: "#f1d801"],
-						[value: 95, color: "#d04e00"],
-						[value: 96, color: "#bc2323"]
-					]
-			}
-		}
-
-		valueTile("humidity", "device.humidity", inactiveLabel: false, width: 2, height: 2) {
-			state "humidity", label: '${currentValue}% humidity', unit: ""
-		}
-
-		valueTile("battery", "device.battery", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-			state "battery", label: '${currentValue}% battery', unit: ""
-		}
-
-		valueTile("pendingChanges", "device.pendingChanges", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-			state "pendingChanges", label:'${currentValue}'
-		}
-
-		standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-			state "default", action: "refresh.refresh", icon: "st.secondary.refresh"
-		}
-
-		main(["contact", "temperature", "humidity"])
-		details(["contact", "temperature", "humidity", "battery", "refresh", "pendingChanges"])
-	}
-
-	// simulator metadata
-	simulator {
-		// status messages
-		status "open": "command: 2001, payload: FF"
-		status "closed": "command: 2001, payload: 00"
-		status "wake up": "command: 8407, payload: "
 	}
 
 	preferences {
@@ -302,7 +254,6 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport 
 			def temp = convertTemperatureIfNeeded(cmd.scaledSensorValue, unit, cmd.precision)
 			sendEvent(getEventMap("temperature", temp, true, null, getTemperatureScale()))
 			break
-
 		case lightSensorType:
 			sendEvent(getEventMap( "humidity", cmd.scaledSensorValue, true, null, "%"))
 			break
@@ -487,13 +438,9 @@ private getConfigParams() {
 		minTemperatureOffsetParam,
 		minHumidityOffsetParam,
 		temperatureUpperWatermarkParam,
-		temperatureUpperControlParam,
 		temperatureLowerWatermarkParam,
-		temperatureLowerControlParam,
 		humidityUpperWatermarkParam,
-		humidityUpperControlParam,
 		humidityLowerWatermarkParam,
-		humidityLowerControlParam,
 		switchTemperatureUnitParam,
 		temperatureOffsetParam,
 		humidityOffsetParam,
@@ -533,32 +480,16 @@ private getTemperatureUpperWatermarkParam() {
 	return getParam(8, "Temperature Upper Watermark value(0,Disabled; 1 - 50: 1℃/33.8°F-50℃/122.0°F)", 2, 0, null, "0..50")
 }
 
-private getTemperatureUpperControlParam() {
-	return getParam(9, "Temperature Upper Notification and Association Group Control", 1, 7,getNotificationAndAssociationGroupControlOptions(3))
-}
-
 private getTemperatureLowerWatermarkParam() {
 	return getParam(10, "Temperature Lower Watermark value(0,Disabled; 1 - 50: 1℃/33.8°F - 50℃/122.0°F)", 2, 0, null, "0..50")
-}
-
-private getTemperatureLowerControlParam() {
-	return getParam(11, "Temperature Lower Notification and Association Group Control", 1, 7, getNotificationAndAssociationGroupControlOptions(4))
 }
 
 private getHumidityUpperWatermarkParam() {
 	return getParam(12, "Humidity Upper Watermark value(0,Disabled; 1 - 100: 1% - 100%)", 1, 0, null, "0..100")
 }
 
-private getHumidityUpperControlParam() {
-	return getParam(13, "Humidity Upper Notification and Association Group Control", 1, 7, getNotificationAndAssociationGroupControlOptions(5))
-}
-
 private getHumidityLowerWatermarkParam() {
 	return getParam(14, "Humidity Lower Watermark value(0,Disabled; 1 - 100: 1%-100%)", 1, 0, null, "0..100")
-}
-
-private getHumidityLowerControlParam() {
-	return getParam(15, "Humidity Lower Notification and Association Group Control", 1, 7, getNotificationAndAssociationGroupControlOptions(6))
 }
 
 private getSwitchTemperatureUnitParam() {
@@ -625,19 +556,6 @@ private static getSensorModeWhenCloseOptions() {
 	return [
 		"0":"door/window closed",
 		"1":"door/window opened"
-	]
-}
-
-private static getNotificationAndAssociationGroupControlOptions(int groupId){
-	return [
-		"0":"disable notification and association group basic set",
-		"1":"only notification report to lifeline group",
-		"2":"only basic set on to association group ${groupId}",
-		"3":"notification to lifeline and basic set on to association group ${groupId}",
-		"4":"only basic set off to association group ${groupId}",
-		"5":"notification to lifeline and basic off to association group ${groupId}",
-		"6":"basic set on and off to association group ${groupId}",
-		"7":"notification to lifeline and basic set on and off to association group ${groupId}"
 	]
 }
 
