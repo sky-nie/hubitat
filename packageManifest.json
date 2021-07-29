@@ -18,6 +18,13 @@
       "namespace": "sky-nie",
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/master/min-smart-plug-dimmer.src/min-smart-plug-dimmer.groovy",
       "required": false
+    },
+    {
+      "id": "3a6e2f31-ca60-4c34-be38-ac79cd832099",
+      "name": "Minoston Power Switch",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/master/minoston-power-switch.src/minoston-power-switch.groovy",
+      "required": false
     }
   ]
 }
