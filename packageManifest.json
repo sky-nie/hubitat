@@ -3,7 +3,7 @@
   "author": "winnie",
   "version": "1.0.3",
   "minimumHEVersion": "2.1.9",
-  "dateReleased": "2021-07-19",
+  "dateReleased": "2021-08-12",
   "drivers": [
     {
       "id": "7c9452af-0609-4c8f-b769-5e9f6e849cf9",
@@ -24,6 +24,13 @@
       "name": "Minoston Power Switch",
       "namespace": "sky-nie",
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston-power-switch.src/minoston-power-switch.groovy",
+      "required": false
+    },
+    {
+      "id": "16bc389c-ebbc-4393-9398-c7d7007a425d",
+      "name": "Minoston Wallmote",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston-wallmote.src/minoston-wallmote.groovy",
       "required": false
     }
   ]
