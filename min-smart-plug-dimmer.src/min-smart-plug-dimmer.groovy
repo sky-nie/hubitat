@@ -83,10 +83,12 @@ metadata {
 
     preferences {
         configParams.each {
-            if (it.range) {
-                input "configParam${it.num}", "number", title: "${it.name}:", required: false, defaultValue: "${it.value}", range: it.range
-            } else {
-                input "configParam${it.num}", "enum", title: "${it.name}:", required: false, defaultValue: "${it.value}", options: it.options
+            if (it.name) {
+                if (it.range) {
+                    input "configParam${it.num}", "number", title: "${it.name}:", required: false, defaultValue: "${it.value}", range: it.range
+                } else {
+                    input "configParam${it.num}", "enum", title: "${it.name}:", required: false, defaultValue: "${it.value}", options: it.options
+                }
             }
         }
     }
@@ -139,6 +141,14 @@ def executeConfigureCmds() {
 
     def cmds = []
 
+    if (!device.currentValue("switch")) {
+        cmds << switchMultilevelGetCmd()
+    }
+
+    if (state.resyncAll || !device.currentValue("firmwareVersion")) {
+        cmds << secureCmd(zwave.versionV1.versionGet())
+    }
+
     configParams.each { param ->
         def storedVal = getParamStoredValue(param.num)
         def paramVal = param.value
@@ -165,7 +175,7 @@ def parse(String description) {
             logDebug "Unable to parse description: $description"
         }
 
-        sendEvent(name: "lastCheckIn", value: convertToLocalTimeString(new Date()), displayed: false)
+        updateLastCheckIn()
     } catch (e) {
         log.error "$e"
     }
@@ -226,22 +236,22 @@ private secureCmd(cmd) {
 
 private static getCommandClassVersions() {
     [
-            0x20: 1,	// Basic
-            0x26: 3,	// Switch Multilevel
-            0x55: 1,	// Transport Service
-            0x59: 1,	// AssociationGrpInfo
-            0x5A: 1,	// DeviceResetLocally
-            0x71: 3,	// Notification
-            0x6C: 1,	// Supervision
-            0x70: 1,	// Configuration
-            0x7A: 2,	// FirmwareUpdateMd
-            0x72: 2,	// ManufacturerSpecific
-            0x73: 1,	// Powerlevel
-            0x85: 2,	// Association
-            0x86: 1,	// Version (2)
-            0x8E: 2,	// Multi Channel Association
-            0x98: 1,	// Security S0
-            0x9F: 1 	// Security S2
+        0x20: 1,	// Basic
+        0x26: 3,	// Switch Multilevel
+        0x55: 1,	// Transport Service
+        0x59: 1,	// AssociationGrpInfo
+        0x5A: 1,	// DeviceResetLocally
+        0x71: 3,	// Notification
+        0x6C: 1,	// Supervision
+        0x70: 1,	// Configuration
+        0x7A: 2,	// FirmwareUpdateMd
+        0x72: 2,	// ManufacturerSpecific
+        0x73: 1,	// Powerlevel
+        0x85: 2,	// Association
+        0x86: 1,	// Version (2)
+        0x8E: 2,	// Multi Channel Association
+        0x98: 1,	// Security S0
+        0x9F: 1		// Security S2
     ]
 }
 
@@ -447,5 +457,19 @@ private sendSwitchEvents(rawVal, type) {
 
     if (rawVal) {
         sendEvent(name: "level",  value:rawVal, displayed: true, type: type, unit:"%")
+    }
+}
+
+private updateLastCheckIn() {
+    if (!isDuplicateCommand(state.lastCheckInTime, 60000)) {
+        state.lastCheckInTime = new Date().time
+
+        def evt = [name: "lastCheckIn", value: convertToLocalTimeString(new Date()), displayed: false]
+
+        sendEvent(evt)
+
+        if (childDevices) {
+            childDevices*.sendEvent(evt)
+        }
     }
 }
