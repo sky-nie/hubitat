@@ -1,5 +1,5 @@
 /**
- *  Minoston Power Switch v1.0.0
+ *  Minoston Power Switch v1.0.0(HUBITAT)
  *
  *  (Models: MP21ZP)
  *
@@ -44,7 +44,7 @@ metadata {
 		capability "Health Check"
 		attribute "energyDays",  "number"
 		attribute "energyStatus", "string"
-		capability "booklocket57627.amperageMeasurement"
+		attribute "amperage",  "number"
 		attribute "firmwareVersion", "number"
 
 		attribute "lastCheckin", "string"
@@ -331,8 +331,8 @@ private configGetCmd(param) {
 
 private secureCmd(cmd) {
 	try {
-		if (zwaveInfo?.zw?.contains("s") || ("0x98" in device?.rawDescription?.split(" "))) {
-			return zwave.securityV1.securityMessageEncapsulation().encapsulate(cmd).format()
+		if (getDataValue("zwaveSecurePairingComplete") == "true") {
+			return zwaveSecureEncap(cmd.format())
 		} else {
 			return cmd.format()
 		}
@@ -357,7 +357,7 @@ def parse(String description) {
 	return result
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
+def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
 	def encapsulatedCmd = cmd.encapsulatedCommand(commandClassVersions)
 
 	def result = []
@@ -393,7 +393,7 @@ private static getCommandClassVersions() {
 	]
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	def val = cmd.scaledConfigurationValue
 
 	state.configured = true
@@ -424,7 +424,7 @@ def zwaveEvent(physicalgraph.zwave.commands.configurationv2.ConfigurationReport 
 	return []
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.versionv1.VersionReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
 	logTrace "VersionReport: ${cmd}"
 
 	def subVersion = String.format("%02d", cmd.applicationSubVersion)
@@ -437,14 +437,14 @@ def zwaveEvent(physicalgraph.zwave.commands.versionv1.VersionReport cmd) {
 	return []
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 	logTrace "SwitchBinaryReport: ${cmd}"
 	def result = []
 	result << createSwitchEvent(cmd.value, "digital")
 	return result
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.basicv1.BasicReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	logTrace "BasicReport: ${cmd}"
 	def result = []
 	result << createSwitchEvent(cmd.value, "physical")
@@ -458,7 +458,7 @@ private createSwitchEvent(value, type) {
 	return createEvent(map)
 }
 
-def zwaveEvent(physicalgraph.zwave.commands.meterv3.MeterReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 	logTrace "MeterReport: $cmd"
 	def result = []
 	def val = roundTwoPlaces(cmd.scaledMeterValue)
@@ -576,7 +576,7 @@ private static getFormattedDuration(duration, divisor, name) {
 	return "${duration} ${name}${duration == 1 ? '' : 's'}"
 }
 
-def zwaveEvent(physicalgraph.zwave.Command cmd) {
+def zwaveEvent(hubitat.zwave.Command cmd) {
 	logDebug "Unhandled zwaveEvent: $cmd"
 	return []
 }
