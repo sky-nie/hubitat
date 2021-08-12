@@ -42,7 +42,7 @@ metadata {
 		capability "Configuration"
 		capability "Refresh"
 		capability "Health Check"
-		//capability "booklocket57627.amperageMeasurement"
+//		capability "booklocket57627.amperageMeasurement"
 
 		attribute "lastCheckin", "string"
 		attribute "history", "string"
@@ -176,8 +176,7 @@ def configure() {
 	if (!getAttrVal("energyTime")) {
 		result << "delay 1000"
 		result += reset()
-	}
-	else if (!state.configured) {
+	} else if (!state.configured) {
 		result << "delay 1000"
 		result += refresh()
 	}
@@ -198,8 +197,7 @@ private updateConfigVal(param) {
 private hasPendingChange(param) {
 	if (param.num != manualControlParam.num || isFirmwareVersion2()) {
 		return (getParamIntVal(param) != getParamStoredIntVal(param))
-	}
-	else {
+	} else {
 		if (getParamIntVal(param) == 0) {
 			logNotSupportedMessage("Manual Control option 'Disabled'", "")
 		}
@@ -236,8 +234,7 @@ def on() {
 			switchBinarySetCmd(0xFF),
 			switchBinaryGetCmd()
 		], 500)
-	}
-	else {
+	} else {
 		logDisabledHubControlMessage("on")
 	}
 }
@@ -249,8 +246,7 @@ def off() {
 			switchBinarySetCmd(0x00),
 			switchBinaryGetCmd()
 		], 500)
-	}
-	else {
+	} else {
 		logDisabledHubControlMessage("off")
 	}
 }
@@ -329,7 +325,7 @@ private secureCmd(cmd) {
 			return cmd.format()
 		}
 	} catch (ex) {
-		log.error("caught exception", ex)
+		throw new RuntimeException(ex)
 	}
 }
 
@@ -338,8 +334,7 @@ def parse(String description) {
 	def cmd = zwave.parse(description, commandClassVersions)
 	if (cmd) {
 		result += zwaveEvent(cmd)
-	}
-	else {
+	} else {
 		log.warn "Unable to parse: $description"
 	}
 
@@ -356,8 +351,7 @@ def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cm
 	def result = []
 	if (encapsulatedCmd) {
 		result += zwaveEvent(encapsulatedCmd)
-	}
-	else {
+	} else {
 		log.warn "Unable to extract encapsulated cmd from $cmd"
 	}
 	return result
@@ -478,11 +472,9 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 
 	if (meter?.limit && val > meter.limit) {
 		log.warn "Ignored ${meter.name} value ${val}${meter.unit} because the highest possible value is ${meter.limit}${meter.unit}."
-	}
-	else if (meter?.name == meterEnergy.name) {
+	} else if (meter?.name == meterEnergy.name) {
 		sendEnergyEvents(val)
-	}
-	else if (meter?.name && getAttrVal("${meter.name}") != val) {
+	} else if (meter?.name && getAttrVal("${meter.name}") != val) {
 		result << createEvent(createEventMap(meter.name, val, meter.displayed, null, meter.unit))
 
 		result += createHighLowEvents(meter, val)
@@ -496,8 +488,7 @@ private createAccelerationEvent(val) {
 	def deviceActive = (device.currentValue("acceleration") == "active")
 	if (val > inactivePowerSetting &&  !deviceActive) {
 		sendEvent(name:"acceleration", value:"active", displayed:false)
-	}
-	else if (val <= inactivePowerSetting && deviceActive){
+	} else if (val <= inactivePowerSetting && deviceActive){
 		sendEvent(name:"acceleration", value:"inactive", displayed:false)
 	}
 }
@@ -539,8 +530,7 @@ private calculateEnergyDays() {
 
 	if (durationMinutes < 15) {
 		return 0
-	}
-	else {
+	} else {
 		return roundTwoPlaces(durationMinutes / (60 * 24))
 	}
 }
@@ -555,11 +545,9 @@ private calculateEnergyDuration() {
 
 		if (duration >= (24 * 60)) {
 			return getFormattedDuration(duration, (24 * 60), "Day")
-		}
-		else if (duration >= 60) {
+		} else if (duration >= 60) {
 			return getFormattedDuration(duration, 60, "Hour")
-		}
-		else {
+		} else {
 			return getFormattedDuration(duration, 0, "Minute")
 		}
 	}
@@ -734,8 +722,7 @@ private createEventMap(name, value, displayed=null, desc=null, unit=null) {
 	if (desc && eventMap.displayed) {
 		logDebug desc
 		eventMap.descriptionText = "${device.displayName} - ${desc}"
-	}
-	else {
+	} else {
 		logTrace "Creating Event: ${eventMap}"
 	}
 	return eventMap
@@ -744,8 +731,7 @@ private createEventMap(name, value, displayed=null, desc=null, unit=null) {
 private getAttrVal(attrName) {
 	try {
 		return device?.currentValue("${attrName}")
-	}
-	catch (ex) {
+	} catch (ex) {
 		logTrace "$ex"
 		return null
 	}
@@ -767,8 +753,7 @@ private convertToLocalTimeString(dt) {
 	def timeZoneId = location?.timeZone?.ID
 	if (timeZoneId) {
 		return dt.format("MM/dd/yyyy hh:mm:ss a", TimeZone.getTimeZone(timeZoneId))
-	}
-	else {
+	} else {
 		return "$dt"
 	}
 }
