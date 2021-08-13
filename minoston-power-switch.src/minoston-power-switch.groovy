@@ -65,8 +65,14 @@ metadata {
 	}
 
 	preferences {
-		configParams?.each {
-			getOptionsInput(it)
+		configParams.each {
+			if (it.name) {
+				if (it.range) {
+					input "configParam${it.num}", "number", title: "${it.name}:", required: false, defaultValue: "${it.value}", range: it.range
+				} else {
+					input "configParam${it.num}", "enum", title: "${it.name}:", required: false, defaultValue: "${it.value}", options: it.options
+				}
+			}
 		}
 
 		input "energyPrice", "decimal",
@@ -89,17 +95,6 @@ metadata {
 	}
 }
 
-private getOptionsInput(param) {
-	if (param.prefName) {
-		input "${param.prefName}", "enum",
-			title: "${param.name}:",
-			defaultValue: "${param.val}",
-			required: false,
-			displayDuringSetup: true,
-			options: param.options?.collect { name, val -> name }
-	}
-}
-
 private getBoolInput(name, title, defaultVal) {
 	input "${name}", "bool", 
 		title: "${title}?", 
@@ -109,7 +104,7 @@ private getBoolInput(name, title, defaultVal) {
 
 // Meters
 private getMeterEnergy() {
-	return getMeterMap("energy", 0, "kWh", null, settings?.displayEnergy != false) 
+	return getMeterMap("energy", 0, "kWh", null, settings?.displayEnergy != false)
 }
 
 private getMeterPower() {
@@ -117,10 +112,10 @@ private getMeterPower() {
 }
 
 private getMeterVoltage() {
-	return getMeterMap("voltage", 4, "V", 150, settings?.displayVoltage != false) 
+	return getMeterMap("voltage", 4, "V", 150, settings?.displayVoltage != false)
 }
 
-private getMeterAmperage() { 
+private getMeterAmperage() {
 	return getMeterMap("amperage", 5, "A", 18, settings?.displayCurrent != false)
 }
 
@@ -442,7 +437,6 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 		sendEvent(createEventMap("energyDuration", calculateEnergyDuration(), false))
 	} else if (meter?.name && getAttrVal("${meter.name}") != val) {
 		result << createEvent(createEventMap(meter.name, val, meter.displayed, null, meter.unit))
-
 		def highLowNames = []
 		def highName = "${meter.name}High"
 		def lowName = "${meter.name}Low"
@@ -506,7 +500,7 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 // Configuration Parameters
 private getConfigParams() {
     return [
-		ledIndicatorParam,
+		ledModeParam,
 		autoOffIntervalParam,
 		autoOnIntervalParam,
 		powerFailureRecoveryParam,
@@ -517,61 +511,77 @@ private getConfigParams() {
     ]
 }
 
-private getLedIndicatorParam() {
-	return createConfigParamMap(1, "LED Indicator Mode", 1,  ["On When On${defaultOptionSuffix}":0, "Off When On":1, "Always Off":2, "Always On":3], "LED Indicator Mode")
+private getLedModeParam() {
+	return getParam(1, "LED Indicator Mode", 1, 0, ledModeOptions)
 }
 
 private getAutoOffIntervalParam() {
-	return createConfigParamMap(2, "Auto Turn-Off Timer", 4,  ["Disabled${defaultOptionSuffix}":0, "1 Minute":1, "2 Minutes":2, "3 Minutes":3, "4 Minutes":4, "5 Minutes":5, "6 Minutes":6, "7 Minutes":7, "8 Minutes":8, "9 Minutes":9, "10 Minutes":10, "15 Minutes":15, "20 Minutes":20, "25 Minutes":25, "30 Minutes":30, "45 Minutes":45, "1 Hour":60, "2 Hours":120, "3 Hours":180, "4 Hours":240, "5 Hours":300, "6 Hours":360, "7 Hours":420, "8 Hours":480, "9 Hours":540, "10 Hours":600, "12 Hours":720, "18 Hours":1080, "1 Day":1440, "2 Days":2880, "3 Days":4320, "4 Days":5760, "5 Days":7200, "6 Days":8640, "1 Week":10080, "2 Weeks":20160, "3 Weeks":30240, "4 Weeks":40320, "5 Weeks":50400, "6 Weeks":60480], "Auto Turn-Off Timer")
+	return getParam(2, "Auto Turn-Off Timer(0,Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
 }
 
 private getAutoOnIntervalParam() {
-	return createConfigParamMap(3, "Auto Turn-On Timer", 4, ["Disabled${defaultOptionSuffix}":0, "1 Minute":1, "2 Minutes":2, "3 Minutes":3, "4 Minutes":4, "5 Minutes":5, "6 Minutes":6, "7 Minutes":7, "8 Minutes":8, "9 Minutes":9, "10 Minutes":10, "15 Minutes":15, "20 Minutes":20, "25 Minutes":25, "30 Minutes":30, "45 Minutes":45, "1 Hour":60, "2 Hours":120, "3 Hours":180, "4 Hours":240, "5 Hours":300, "6 Hours":360, "7 Hours":420, "8 Hours":480, "9 Hours":540, "10 Hours":600, "12 Hours":720, "18 Hours":1080, "1 Day":1440, "2 Days":2880, "3 Days":4320, "4 Days":5760, "5 Days":7200, "6 Days":8640, "1 Week":10080, "2 Weeks":20160, "3 Weeks":30240, "4 Weeks":40320, "5 Weeks":50400, "6 Weeks":60480], "Auto Turn-On Timer")
+	return getParam(3, "Auto Turn-On Timer(0,Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
 }
 
 private getPowerFailureRecoveryParam() {
-	return createConfigParamMap(4, "Power Failure Recovery", 1, ["Remember last status${defaultOptionSuffix}":0, "Turn Off":1, "Turn On":2], "powerFailureRecovery")
+	return getParam(4, "Power Failure Recovery", 1, 0, powerFailureRecoveryOptions)
 }
 
 private getPowerValueChangeParam() {
-	return createConfigParamMap(5, "Power Report Value Change", 1, ["0W":0, "1W${defaultOptionSuffix}":1,"2W":2, "3W":3, "4W":4,"5W":5], "powerValueChange")
+	return getParam(5, "Power Report Value Change(0-0W, 1-1W...5-5w)", 1, 1, null, "0..5")
 }
 
 private getPowerReportIntervalParam() {
-	return createConfigParamMap(6, "Power Reporting Interval", 4, ["1 Minute${defaultOptionSuffix}":1, "2 Minutes":2, "3 Minutes":3, "4 Minutes":4, "5 Minutes":5, "6 Minutes":6, "7 Minutes":7, "8 Minutes":8, "9 Minutes":9, "10 Minutes":10, "15 Minutes":15, "20 Minutes":20, "25 Minutes":25, "30 Minutes":30, "45 Minutes":45, "1 Hour":60, "2 Hours":120, "3 Hours":180, "4 Hours":240, "5 Hours":300, "6 Hours":360, "7 Hours":420, "8 Hours":480, "9 Hours":540, "10 Hours":600, "12 Hours":720, "18 Hours":1080, "1 Day":1440, "2 Days":2880, "3 Days":4320, "4 Days":5760, "5 Days":7200, "6 Days":8640, "1 Week":10080, "2 Weeks":20160, "3 Weeks":30240, "4 Weeks":40320, "5 Weeks":50400, "6 Weeks":60480], "Power Reporting Interval")
+	return getParam(6, "Power Reporting Interval(1 - 65535 minutes)", 4, 1, null, "1..65535")
 }
 
 private getCurrentReportParam() {
-	return createConfigParamMap(7, "Current Report Value Change", 1, ["0.1A${defaultOptionSuffix}":1, "0.2A":2, "0.3A":3, "0.4A":4, "0.5A":5, "0.6A":6, "0.7A":7, "0.8A":8, "0.9A":9, "1A":10], "Current Report Value Change")
+	return getParam(7, "Current Report Value Change(1-0.1A,2-0.2A...10-1A)", 1, 1, null, "1..10")
 }
 
 private getElectricityReportParam() {
-	return createConfigParamMap(8, "Electricity Report Value Change", 1, ["0.01KWH${defaultOptionSuffix}":1, "0.02KWH":2, "0.03KWH":3, "0.04KWH":4, "0.05KWH":5, "0.06KWH":6, "0.07KWH":7, "0.08KWH":8, "0.09KWH":9, "0.10KWH":10, "0.15KWH":15, "0.20KWH":20, "0.25KWH":25, "0.30KWH":30, "0.35KWH":35, "0.40KWH":40, "0.45KWH":45, "0.50KWH":50, "0.55KWH":55, "0.60KWH":60, "0.65KWH":75, "0.70KWH":70, "0.75KWH":75, "0.80KWH":80, "0.85KWH":85, "0.90KWH":90, "0.95KWH":95, "1KWH":100], "Electricity Report Value Change")
+	return getParam(8, "Electricity Report Value Change(1-0.01KWH,2-0.02KWH...100-1KWH)", 1, 1, null, "1..100")
 }
 
-private createConfigParamMap(num, name, size, options, prefName, val=null) {
-	if (val == null) {
-		val = (settings?."${prefName}" ?: findDefaultOptionName(options))
+private getParam(num, name, size, defaultVal, options=null, range=null) {
+	def val = safeToInt((settings ? settings["configParam${num}"] : null), defaultVal)
+
+	def map = [num: num, name: name, size: size, value: val]
+	if (options) {
+		map.valueName = options?.find { k, v -> "${k}" == "${val}" }?.value
+		map.options = setDefaultOption(options, defaultVal)
 	}
+	if (range) {
+		map.range = range
+	}
+
+	return map
+}
+
+private static setDefaultOption(options, defaultVal) {
+	return options?.collect { k, v ->
+		if ("${k}" == "${defaultVal}") {
+			v = "${v} [DEFAULT]"
+		}
+		["$k": "$v"]
+	}
+}
+
+private static getLedModeOptions() {
 	return [
-		num: num, 
-		name: name, 
-		size: size, 
-		options: options, 
-		prefName: prefName,
-		val: val
+			"0":"On When On",
+			"1":"Off When On",
+			"2":"Always Off",
+			"3":"Always On"
 	]
 }
 
-private static findDefaultOptionName(options) {
-	def option = options?.find { name, val ->
-		name?.contains("${defaultOptionSuffix}")
-	}
-	return option?.key ?: ""
-}
-
-private static getDefaultOptionSuffix() {
-	return "[Default]"
+private static getPowerFailureRecoveryOptions() {
+	return [
+			"0":"Remember last status",
+			"1":"Turn Off",
+			"2":"Turn On"
+	]
 }
 
 // Settings
