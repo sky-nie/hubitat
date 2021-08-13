@@ -185,7 +185,15 @@ def configure() {
 }
 
 def executeConfigureCmds() {
-    sendHubCommand(getConfigureCmds(), 500)
+    def cmds = getConfigureCmds()
+    if (cmds) {
+        sendCommands(cmds)
+    }
+}
+
+private sendCommands(cmds) {
+    sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
+    return []
 }
 
 def parse(String description) {
