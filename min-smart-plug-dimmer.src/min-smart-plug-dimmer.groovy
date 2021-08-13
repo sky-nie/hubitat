@@ -151,18 +151,22 @@ def executeConfigureCmds() {
 
     configParams.each { param ->
         def storedVal = getParamStoredValue(param.num)
-        def paramVal = param.value
-        if (state.resyncAll || ("${storedVal}" != "${paramVal}")) {
-            cmds << secureCmd(zwave.configurationV1.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: paramVal))
+        if (state.resyncAll || ("${storedVal}" != "${param.value}")) {
+            cmds << secureCmd(zwave.configurationV1.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: param.value))
             cmds << secureCmd(zwave.configurationV1.configurationGet(parameterNumber: param.num))
         }
     }
 
     state.resyncAll = false
     if (cmds) {
-        sendHubCommand(cmds, 500)
+        sendCommands(cmds)
     }
     return []
+}
+
+private sendCommands(cmds) {
+    sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
+	return []
 }
 
 def parse(String description) {
