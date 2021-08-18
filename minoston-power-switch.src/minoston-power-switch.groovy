@@ -12,7 +12,7 @@
  *      - Initial Release
  *
  * Reference:
- *    https://github.com/krlaframboise/SmartThings/blob/master/devicetypes/krlaframboise/zooz-power-switch.src/zooz-power-switch.groovy
+ *    https://raw.githubusercontent.com/pakmanwg/smartthings-peanut-plug/master/devicetypes/pakmanwg/peanut-plug.src/peanut-plug.groovy
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -26,12 +26,10 @@
  */
 metadata {
 	definition (
-		name: "Minoston Power Switch",
-		namespace: "sky-nie",
-		author: "winnie",
-		ocfDeviceType: "oic.d.smartplug",
-		mnmn: "SmartThingsCommunity",
-//		vid: "1957bce8-d1a4-3d5e-b768-835935de293b"
+            name: "Minoston Power Switch",
+            namespace: "sky-nie",
+            author: "winnie",
+            importUrl: "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston-power-switch.src/minoston-power-switch.groovy"
 	) {
 		capability "Actuator"
 		capability "Sensor"
@@ -327,25 +325,25 @@ def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cm
 
 private static getCommandClassVersions() {
 	[
-		0x20: 1,	// Basic
-		0x25: 1,	// Switch Binary
+		0x20: 1,	// Basic                       //BasicReport
+		0x25: 1,	// Switch Binary               //SwitchBinaryReport
 		0x27: 1,	// All Switch
 		0x2B: 1,	// Scene Activation
-		0x2C: 1,	// Scene Actuator Configuration
-		0x32: 3,	// Meter v4
+		0x2C: 1,	// Scene Actuator Configuration//SceneActivationSet             //DTH unimplemented interface
+		0x32: 3,	// Meter v4                    //MeterReport
 		0x55: 1,	// Transport Service
-		0x59: 1,	// AssociationGrpInfo
-		0x5A: 1,	// DeviceResetLocally
+		0x59: 1,	// AssociationGrpInfo          //AssociationGroupInfoReport     //DTH unimplemented interface
+		0x5A: 1,	// DeviceResetLocally          //DeviceResetLocallyNotification //DTH unimplemented interface
 		0x5E: 2,	// ZwaveplusInfo
-		0x71: 3,	// NOTIFICATION_V8
-		0x70: 2,	// Configuration
-		0x72: 2,	// ManufacturerSpecific
+		0x71: 3,	// NOTIFICATION_V8             //NotificationReport             //DTH unimplemented interface
+		0x70: 2,	// Configuration               //ConfigurationReport
+		0x72: 2,	// ManufacturerSpecific        //ManufacturerSpecificReport     //DTH unimplemented interface
 		0x73: 1,	// Powerlevel
-		0x7A: 2,	// Firmware Update Md (3)
-		0x85: 2,	// Association
-		0x86: 1,	// Version (2)
-		0x8E: 2,	// Multi Channel Association
-		0x98: 1		// Security 0
+		0x7A: 2,	// Firmware Update Md (3)      //FirmwareMdReport               //DTH unimplemented interface
+		0x85: 2,	// Association                 //AssociationReport              //DTH unimplemented interface
+		0x86: 1,	// Version (2)                 //VersionReport
+		0x8E: 2,	// Multi Channel Association   //MultiChannelAssociationReport  //DTH unimplemented interface
+		0x98: 1		// Security 0                  //SecurityMessageEncapsulation
 	]
 }
 
@@ -528,19 +526,19 @@ private getPowerFailureRecoveryParam() {
 }
 
 private getPowerValueChangeParam() {
-	return getParam(5, "Power Report Value Change(0-0W, 1-1W...5-5w)", 1, 1, null, "0..5")
+	return getParam(5, "Power Report Value Change(0 - 5:0W - 5w)", 1, 1, null, "0..5")
 }
 
 private getPowerReportIntervalParam() {
-	return getParam(6, "Power Reporting Interval(1 - 65535 minutes)", 4, 1, null, "1..65535")
+	return getParam(6, "Power Reporting Interval(1 - 65535:1 - 65535 minutes)", 4, 1, null, "1..65535")
 }
 
 private getCurrentReportParam() {
-	return getParam(7, "Current Report Value Change(1-0.1A,2-0.2A...10-1A)", 1, 1, null, "1..10")
+	return getParam(7, "Current Report Value Change(1 - 10:0.1A - 1A)", 1, 1, null, "1..10")
 }
 
 private getElectricityReportParam() {
-	return getParam(8, "Electricity Report Value Change(1-0.01KWH,2-0.02KWH...100-1KWH)", 1, 1, null, "1..100")
+	return getParam(8, "Electricity Report Value Change(1 - 100:0.01KWH - 1KWH)", 1, 1, null, "1..100")
 }
 
 private getParam(num, name, size, defaultVal, options=null, range=null) {
