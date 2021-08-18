@@ -45,19 +45,26 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  */
-final  int NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06
-final  int NOTIFICATION_TYPE_HOME_SECURITY = 0x07
+import groovy.transform.Field
+@Field static int NOTIFICATION_TYPE_ACCESS_CONTROL = 0x06
+@Field static int NOTIFICATION_TYPE_HOME_SECURITY = 0x07
 
-final  int NOTIFICATION_EVENT_DOOR_WINDOW_OPEN = 0x16
-final  int NOTIFICATION_EVENT_DOOR_WINDOW_CLOSED = 0x17
+@Field static int NOTIFICATION_EVENT_DOOR_WINDOW_OPEN = 0x16
+@Field static int NOTIFICATION_EVENT_DOOR_WINDOW_CLOSED = 0x17
 
-final  int NOTIFICATION_EVENT_STATE_IDLE = 0x00
-final  int NOTIFICATION_EVENT_INSTRUSION_WITH_LOCATION = 0x01
-final  int NOTIFICATION_EVENT_INSTRUSION = 0x02
-final  int NOTIFICATION_EVENT_TEMPERING = 0x03
+@Field static int NOTIFICATION_EVENT_STATE_IDLE = 0x00
+@Field static int NOTIFICATION_EVENT_INSTRUSION_WITH_LOCATION = 0x01
+@Field static int NOTIFICATION_EVENT_INSTRUSION = 0x02
+@Field static int NOTIFICATION_EVENT_TEMPERING = 0x03
 
 metadata {
-	definition(name: "Minoston Door/Window Sensor", namespace: "sky-nie", author: "winnie", ocfDeviceType: "x.com.st.d.sensor.contact", executeCommandsLocally: false) {
+	definition(
+            name: "Minoston Door/Window Sensor",
+            namespace: "sky-nie",
+            author: "winnie",
+            executeCommandsLocally: false,
+            importUrl: "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston-door-window-sensor.src/minoston-door-window-sensor.groovy"
+	) {
 		capability "Sensor"
 		capability "Contact Sensor"
 		capability "Temperature Measurement"
@@ -129,9 +136,8 @@ def executeConfigure() {
 	}
 }
 
-private sendCommands(cmds) {
+void sendCommands(cmds) {
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
-	return []
 }
 
 private getConfigCmds() {
@@ -396,25 +402,25 @@ private secureCmd(cmd) {
 
 private static getCommandClassVersions() {
 	[
-		0x30: 2,  // SensorBinary
-		0x31: 5,  // SensorMultilevel
+		0x30: 2,  // SensorBinary             //SensorBinaryReport
+		0x31: 5,  // SensorMultilevel         //SensorMultilevelReport
 		0x55: 1,  // TransportServices
-		0x59: 1,  // AssociationGrpInfo
-		0x5A: 1,  // DeviceResetLocally
+		0x59: 1,  // AssociationGrpInfo       //AssociationGroupInfoReport    //DTH unimplemented interface
+		0x5A: 1,  // DeviceResetLocally       //DeviceResetLocallyNotification//DTH unimplemented interface
 		0x5E: 2,  // ZwaveplusInfo
-		0x6C: 1,  // Supervision
-		0x70: 1,  // Configuration
-		0x71: 3,  // Notification
-		0x72: 2,  // ManufacturerSpecific
+		0x6C: 1,  // Supervision              //SupervisionGet                //DTH unimplemented interface
+		0x70: 1,  // Configuration            //ConfigurationReport
+		0x71: 3,  // Notification             //NotificationReport
+		0x72: 2,  // ManufacturerSpecific     //ManufacturerSpecificReport    //DTH unimplemented interface
 		0x73: 1,  // Powerlevel
-		0x7A: 2,  // FirmwareUpdateMd
-		0x80: 1,  // Battery
-		0x84: 1,  // WakeUp
-		0x85: 2,  // Association
-		0x86: 1,  // Version
-		0x8E: 2,  // MultChannelAssociation
-		0x87: 1,  // Indicator
-		0x9F: 1   // Security 2
+		0x7A: 2,  // FirmwareUpdateMd         //FirmwareMdReport              //DTH unimplemented interface
+		0x80: 1,  // Battery                  //BatteryReport
+		0x84: 1,  // WakeUp                   //WakeUpIntervalReport          //DTH unimplemented interface
+		0x85: 2,  // Association              //AssociationReport             //DTH unimplemented interface
+		0x86: 1,  // Version                  //VersionReport                 //DTH unimplemented interface
+		0x8E: 2,  // MultChannelAssociation   //MultiChannelAssociationReport //DTH unimplemented interface
+		0x87: 1,  // Indicator                //IndicatorReport
+		0x9F: 1   // Security S2              //SecurityMessageEncapsulation
 	]
 }
 
@@ -456,11 +462,11 @@ private getConfigParams() {
 }
 
 private getBatteryReportThresholdParam() {
-	return getParam(1, "Battery report threshold(1 - 20: 1% - 20%)", 1, 10, null,"1..20")
+	return getParam(1, "Battery report threshold(1 - 20:1% - 20%)", 1, 10, null,"1..20")
 }
 
 private getLowBatteryAlarmReportParam() {
-	return getParam(2, "Low battery alarm report(5 - 20: 5% - 20%)", 1, 5, null, "5..20")
+	return getParam(2, "Low battery alarm report(5 - 20:5% - 20%)", 1, 5, null, "5..20")
 }
 
 private getSensorModeWhenClosedParam() {
@@ -476,27 +482,27 @@ private getDelayReportSecondsWhenOpenedParam() {
 }
 
 private getMinTemperatureOffsetParam() {
-	return getParam(6, "Minimum Temperature change to report(5 - 50: 0.5℃/0.9°F - 5.0℃/9°F)", 1, 10, null, "5..50")
+	return getParam(6, "Minimum Temperature change to report(5 - 50:0.5℃/0.9°F - 5.0℃/9°F)", 1, 10, null, "5..50")
 }
 
 private getMinHumidityOffsetParam() {
-	return getParam(7, "Minimum Humidity change to report(5 - 20: 5% - 20%)", 1, 10, null, "5..20")
+	return getParam(7, "Minimum Humidity change to report(5 - 20:5% - 20%)", 1, 10, null, "5..20")
 }
 
 private getTemperatureUpperWatermarkParam() {
-	return getParam(8, "Temperature Upper Watermark value(0,Disabled; 1 - 50: 1℃/33.8°F-50℃/122.0°F)", 2, 0, null, "0..50")
+	return getParam(8, "Temperature Upper Watermark value(0,Disabled; 1 - 50:1℃/33.8°F-50℃/122.0°F)", 2, 0, null, "0..50")
 }
 
 private getTemperatureLowerWatermarkParam() {
-	return getParam(10, "Temperature Lower Watermark value(0,Disabled; 1 - 50: 1℃/33.8°F - 50℃/122.0°F)", 2, 0, null, "0..50")
+	return getParam(10, "Temperature Lower Watermark value(0,Disabled; 1 - 50:1℃/33.8°F - 50℃/122.0°F)", 2, 0, null, "0..50")
 }
 
 private getHumidityUpperWatermarkParam() {
-	return getParam(12, "Humidity Upper Watermark value(0,Disabled; 1 - 100: 1% - 100%)", 1, 0, null, "0..100")
+	return getParam(12, "Humidity Upper Watermark value(0,Disabled; 1 - 100:1% - 100%)", 1, 0, null, "0..100")
 }
 
 private getHumidityLowerWatermarkParam() {
-	return getParam(14, "Humidity Lower Watermark value(0,Disabled; 1 - 100: 1%-100%)", 1, 0, null, "0..100")
+	return getParam(14, "Humidity Lower Watermark value(0,Disabled; 1 - 100:1%-100%)", 1, 0, null, "0..100")
 }
 
 private getSwitchTemperatureUnitParam() {
@@ -504,11 +510,11 @@ private getSwitchTemperatureUnitParam() {
 }
 
 private getTemperatureOffsetParam() {
-	return getParam(17, "Offset value for temperature(-100 - 100: -10℃/14.0°F - 10℃/50.0°F)", 1, 0,  null, "-100..100")
+	return getParam(17, "Offset value for temperature(-100 - 100:-10℃/14.0°F - 10℃/50.0°F)", 1, 0,  null, "-100..100")
 }
 
 private getHumidityOffsetParam() {
-	return getParam(18, "Offset value for humidity (-20 - 20: -20% - 20%)", 1, 0,  null, "-20..20")
+	return getParam(18, "Offset value for humidity (-20 - 20:-20% - 20%)", 1, 0,  null, "-20..20")
 }
 
 private getAssociationGroupSettingParam() {
