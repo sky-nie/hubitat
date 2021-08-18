@@ -65,7 +65,12 @@
  */
 
 metadata {
-    definition (name: "Min Smart Plug Dimmer", namespace: "sky-nie", author: "winnie", ocfDeviceType: "oic.d.smartplug") {
+    definition (
+            name: "Min Smart Plug Dimmer",
+            namespace: "sky-nie",
+            author: "winnie",
+            importUrl: "https://raw.githubusercontent.com/sky-nie/hubitat/main/min-smart-plug-dimmer.src/min-smart-plug-dimmer.groovy"
+    ) {
         capability "Actuator"
         capability "Switch"
         capability "Switch Level"
@@ -164,9 +169,8 @@ def executeConfigureCmds() {
     return []
 }
 
-private sendCommands(cmds) {
+void sendCommands(cmds) {
     sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
-	return []
 }
 
 def parse(String description) {
@@ -207,7 +211,6 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
     def param = configParams.find { it.num == cmd.parameterNumber }
     if (param) {
         def val = cmd.scaledConfigurationValue
-
         logDebug "${param.name}(#${param.num}) = ${val}"
         state["configParam${param.num}"] = val
     } else {
@@ -240,22 +243,21 @@ private secureCmd(cmd) {
 
 private static getCommandClassVersions() {
     [
-        0x20: 1,	// Basic
-        0x26: 3,	// Switch Multilevel
+        0x20: 1,	// Basic                     //BasicReport
+        0x26: 3,	// Switch Multilevel         //SwitchMultilevelReport
         0x55: 1,	// Transport Service
-        0x59: 1,	// AssociationGrpInfo
-        0x5A: 1,	// DeviceResetLocally
-        0x71: 3,	// Notification
-        0x6C: 1,	// Supervision
-        0x70: 1,	// Configuration
-        0x7A: 2,	// FirmwareUpdateMd
-        0x72: 2,	// ManufacturerSpecific
+        0x59: 1,	// AssociationGrpInfo        //AssociationGroupInfoReport       //DTH unimplemented interface
+        0x5A: 1,	// DeviceResetLocally        //DeviceResetLocallyNotification   //DTH unimplemented interface
+        0x71: 3,	// Notification              //NotificationReport               //DTH unimplemented interface
+        0x6C: 1,	// Supervision               //SupervisionGet                   //DTH unimplemented interface
+        0x70: 1,	// Configuration             //ConfigurationReport
+        0x7A: 2,	// FirmwareUpdateMd          //FirmwareMdReport                 //DTH unimplemented interface
+        0x72: 2,	// ManufacturerSpecific      //ManufacturerSpecificReport       //DTH unimplemented interface
         0x73: 1,	// Powerlevel
-        0x85: 2,	// Association
-        0x86: 1,	// Version (2)
-        0x8E: 2,	// Multi Channel Association
-        0x98: 1,	// Security S0
-        0x9F: 1		// Security S2
+        0x85: 2,	// Association               //AssociationReport                //DTH unimplemented interface
+        0x86: 1,	// Version (2)               //VersionReport
+        0x8E: 2,	// Multi Channel Association //MultiChannelAssociationReport    //DTH unimplemented interface
+        0x9F: 1		// Security S2               //SecurityMessageEncapsulation
     ]
 }
 
