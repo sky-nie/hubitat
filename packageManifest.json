@@ -13,13 +13,6 @@
       "required": false
     },
     {
-      "id": "61240d60-5d1a-492d-a62e-17f84e2f4243",
-      "name": "Min Smart Plug Dimmer",
-      "namespace": "sky-nie",
-      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/min-smart-plug-dimmer.src/min-smart-plug-dimmer.groovy",
-      "required": false
-    },
-    {
       "id": "3a6e2f31-ca60-4c34-be38-ac79cd832099",
       "name": "Minoston Power Switch",
       "namespace": "sky-nie",
@@ -31,6 +24,20 @@
       "name": "Minoston Wallmote",
       "namespace": "sky-nie",
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston-wallmote.src/minoston-wallmote.groovy",
+      "required": false
+    },
+    {
+      "id": "0235cfa2-f902-41b2-acad-d6894d5c4266",
+      "name": "Mini Smart Plug",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/mini-smart-plug.src/mini-smart-plug.groovy",
+      "required": false
+    },
+    {
+      "id": "50795455-2814-48a2-9bfa-038c246677eb",
+      "name": "Mini Smart Plug Dimmer",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/mini-smart-plug-dimmer.src/mini-smart-plug-dimmer.groovy",
       "required": false
     }
   ]
