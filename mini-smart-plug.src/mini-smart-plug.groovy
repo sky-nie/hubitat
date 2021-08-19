@@ -1,7 +1,7 @@
 /**
- *      Min Smart Plug v1.0.4(HUBITAT)
+ *      Mini Smart Plug v1.0.3(HUBITAT)
  *
- *  	Models: MINOSTON (MP21Z)
+ *  	Models: Eva Logik (ZW30) / MINOSTON (MS10Z)
  *
  *  Author:
  *   winnie (sky-nie)
@@ -10,12 +10,9 @@
  *
  *  Changelog:
  *
- *    1.0.4 (07/13/2021)
+ *    1.0.3 (07/21/2021)
+ *    1.0.2 (07/20/2021)
  *      - Syntax format compliance adjustment
- *      - delete dummy code
- *
- *    1.0.3 (07/12/2021)
- *    1.0.2 (07/07/2021)
  *      - delete dummy code
  *
  *    1.0.1 (03/17/2021)
@@ -40,6 +37,7 @@
  *  limitations under the License.
  *
  */
+import groovy.json.JsonOutput
 
 metadata {
     definition (
@@ -58,9 +56,12 @@ metadata {
         attribute "lastCheckIn", "string"
         attribute "syncStatus", "string"
 
-        fingerprint mfr: "0312", prod: "C000", model: "C009", deviceJoinName: "Minoston Outlet", mnmn: "SmartThings", vid:"generic-switch"    // old MP21Z
-        fingerprint mfr: "0312", prod: "FF00", model: "FF0C", deviceJoinName: "Minoston Outlet", mnmn: "SmartThings", vid:"generic-switch"    //MP21Z Minoston Mini Smart Plug
 
+//        fingerprint mfr: "0312", prod: "EE00", model: "EE01", deviceJoinName: "Minoston Switch", mnmn: "SmartThings", vid:"generic-switch"    //MS10ZS Minoston Smart Switch
+        fingerprint mfr: "0312", prod: "EE00", model: "EE03", deviceJoinName: "Minoston Switch", mnmn: "SmartThings", vid:"generic-switch"    //MS12ZS Minoston Smart on/off Toggle Switch
+//        fingerprint mfr: "0312", prod: "A000", model: "A005", deviceJoinName: "Evalogik Switch", mnmn: "SmartThings", vid:"generic-switch"    //ZW30
+        fingerprint mfr: "0312", prod: "BB00", model: "BB01", deviceJoinName: "Evalogik Switch", mnmn: "SmartThings", vid:"generic-switch"    //ZW30S Evalogik Smart on/off Switch
+        fingerprint mfr: "0312", prod: "BB00", model: "BB03", deviceJoinName: "Evalogik Switch", mnmn: "SmartThings", vid:"generic-switch"    //ZW30TS Evalogik Smart on/off Toggle Switch
     }
 
     preferences {
@@ -73,12 +74,64 @@ metadata {
                 }
             }
         }
+        input(type: "enum", name: "createButton", required: false, title: "Create Button for Paddles?", options: ["No", "Yes"], defaultValue:"Yes")
+        input(type: "enum", name: "debugOutput", required: false, title: "Enable Debug Logging?", options: ["No", "Yes"], defaultValue:"Yes")
+    }
+}
+
+private initialize() {
+    if (device.latestValue("checkInterval") != checkInterval) {
+        sendEvent(name: "checkInterval", value: checkInterval, displayed: false)
+    }
+
+    if (state.createButtonEnabled && !childDevices) {
+        try {
+            def child = addChildButton()
+            child?.sendEvent(checkIntervalEvt)
+        } catch (ex) {
+            log.error("Unable to create button device because the 'Child Button' DTH is not installed",ex)
+        }
+    } else if (!state.createButtonEnabled && childDevices) {
+        removeChildButton(childDevices[0])
+    }
+}
+
+private addChildButton() {
+    log.warn "Creating Button Device"
+    def child = addChildDevice(
+            "sky-nie",
+            "Child Button",
+            "${device.deviceNetworkId}-BUTTON",
+            device.getHub().getId(),
+            [
+                    completedSetup: true,
+                    isComponent: false,
+                    label: "${device.displayName}-Button",
+                    componentLabel: "${device.displayName}-Button"
+            ]
+    )
+    child?.sendEvent(name:"supportedButtonValues", value:JsonOutput.toJson(["pushed", "down", "down_2x", "up", "up_2x"]), displayed:false)
+    child?.sendEvent(name:"numberOfButtons", value:1, displayed:false)
+    sendButtonEvent("pushed")
+    return child
+}
+
+private removeChildButton(child) {
+    try {
+        log.warn "Removing ${child.displayName}} "
+        deleteChildDevice(child.deviceNetworkId)
+    } catch (ex) {
+        log.error("Unable to remove ${child.displayName}!  Make sure that the device is not being used by any SmartApps.", ex)
     }
 }
 
 def installed() {
     logDebug "installed()..."
 
+    if (state.debugLoggingEnabled == null) {
+        state.debugLoggingEnabled = true
+        state.createButtonEnabled = true
+    }
     sendEvent(name: "checkInterval", value: checkInterval, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
 }
 
@@ -96,6 +149,11 @@ def updated() {
         if (device.latestValue("checkInterval") != checkInterval) {
             sendEvent(name: "checkInterval", value: checkInterval, displayed: false)
         }
+
+        state.debugLoggingEnabled = (safeToInt(settings?.debugOutput) != 0)
+        state.createButtonEnabled = (safeToInt(settings?.createButton) != 0)
+
+        initialize()
 
         runIn(5, executeConfigureCmds, [overwrite: true])
     }
@@ -118,7 +176,6 @@ def configure() {
 }
 
 def executeConfigureCmds() {
-
     runIn(6, refreshSyncStatus)
 
     def cmds = []
@@ -134,6 +191,10 @@ def executeConfigureCmds() {
     configParams.each { param ->
         def storedVal = getParamStoredValue(param.num)
         def paramVal = param.value
+
+        if ((param == paddleControlParam) && state.createButtonEnabled && (param.value == 2)) {
+            log.warn "Only 'pushed', 'up_2x', and 'down_2x' button events are supported when Paddle Control is set to Toggle."
+        }
 
         if (state.resyncAll || ("${storedVal}" != "${paramVal}")) {
             cmds << secureCmd(zwave.configurationV1.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: paramVal))
@@ -263,6 +324,17 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 private sendSwitchEvents(rawVal, type) {
     def switchVal = (rawVal == 0xFF) ? "on" : "off"
     sendEvent(name:  "switch", value: switchVal, displayed:  true, type:  type)
+
+    def paddlesReversed = (paddleControlParam.value == 1)
+
+    if (state.createButtonEnabled && (type == "physical") && childDevices) {
+        if (paddleControlParam.value == 2) {
+            sendButtonEvent("pushed")
+        } else {
+            def btnVal = ((rawVal && !paddlesReversed) || (!rawVal && paddlesReversed)) ? "up" : "down"
+            sendButtonEvent(btnVal)
+        }
+    }
 }
 
 def zwaveEvent(hubitat.zwave.Command cmd) {
@@ -277,22 +349,22 @@ def refreshSyncStatus() {
 
 private static getCommandClassVersions() {
     [
-        0x20: 1,	// Basic                    //BasicReport
-        0x25: 1,	// Switch Binary            //SwitchBinaryReport
+        0x20: 1,	// Basic
+        0x25: 1,	// Switch Binary
+        0x5B: 1,	// CentralScene (3)
         0x55: 1,	// Transport Service
-        0x59: 1,	// AssociationGrpInfo       //AssociationGroupInfoReport     //DTH unimplemented interface
-        0x5A: 1,	// DeviceResetLocally       //DeviceResetLocallyNotification //DTH unimplemented interface
-        0x27: 1,	// Switch All
+        0x59: 1,	// AssociationGrpInfo
+        0x5A: 1,	// DeviceResetLocally
         0x5E: 2,	// ZwaveplusInfo
-        0x6C: 1,	// Supervision              //SupervisionGet                 //DTH unimplemented interface
-        0x70: 1,	// Configuration            //ConfigurationReport
-        0x7A: 2,	// FirmwareUpdateMd         //FirmwareMdReport               //DTH unimplemented interface
-        0x72: 2,	// ManufacturerSpecific     //ManufacturerSpecificReport     //DTH unimplemented interface
+        0x6C: 1,	// Supervision
+        0x70: 1,	// Configuration
+        0x7A: 2,	// FirmwareUpdateMd
+        0x72: 2,	// ManufacturerSpecific
         0x73: 1,	// Powerlevel
-        0x85: 2,	// Association              //AssociationReport              //DTH unimplemented interface
-        0x86: 1,	// Version (2)              //VersionReport
-        0x8E: 2,	// Multi Channel Association//MultiChannelAssociationReport  //DTH unimplemented interface
-        0x9F: 1		// Security S2              //SecurityMessageEncapsulation
+        0x85: 2,	// Association
+        0x86: 1,	// Version (2)
+        0x8E: 2,	// Multi Channel Association
+        0x9F: 1		// Security S2
     ]
 }
 
@@ -309,32 +381,82 @@ private getConfigParams() {
         ledModeParam,
         autoOffIntervalParam,
         autoOnIntervalParam,
-        powerFailureRecoveryParam
+        powerFailureRecoveryParam,
+        paddleControlParam
     ]
 }
 
-private getLedModeParam() {
-    return getParam(1, "LED Indicator Mode", 1, 0, ledModeOptions)
-}
-
-private getAutoOffIntervalParam() {
-    return getParam(2, "Auto Turn-Off Timer(0, Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
-}
-
-private getAutoOnIntervalParam() {
-    return getParam(4, "Auto Turn-On Timer(0, Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
-}
-
-private getPowerFailureRecoveryParam() {
-    return getParam(6, "Power Failure Recovery", 1, 0, powerFailureRecoveryOptions)
+private static getPaddleControlOptions() {
+    return [
+        "0":"Normal",
+        "1":"Reverse",
+        "2":"Toggle"
+    ]
 }
 
 private static getLedModeOptions() {
     return [
-            "0":"On When On",
-            "1":"Off When On",
-            "2":"Always Off"
+        "0":"Off When On",
+        "1":"On When On",
+        "2":"Always Off",
+        "3":"Always On"
     ]
+}
+
+def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cmd){
+    if (state.lastSequenceNumber != cmd.sequenceNumber) {
+        state.lastSequenceNumber = cmd.sequenceNumber
+
+        logTrace "${cmd}"
+
+        def paddle = (cmd.sceneNumber == 1) ? "down" : "up"
+        def btnVal
+        switch (cmd.keyAttributes){
+            case 0:
+                btnVal = paddle
+                break
+            case 1:
+                logDebug "Button released not supported"
+                break
+            case 2:
+                logDebug "Button held not supported"
+                break
+            case 3:
+                btnVal = paddle + "_2x"
+                break
+        }
+
+        if (btnVal) {
+            sendButtonEvent(btnVal)
+        }
+    }
+    return []
+}
+
+private sendButtonEvent(value) {
+    if (childDevices) {
+        childDevices[0].sendEvent(name: "button", value: value, data:[buttonNumber: 1], isStateChange: true)
+    }
+}
+
+private getPaddleControlParam() {
+    return getParam(1, "Paddle Control", 1, 0, paddleControlOptions)
+}
+
+private getLedModeParam() {
+    return getParam(2, "LED Indicator Mode", 1, 0, ledModeOptions)
+}
+
+private getAutoOffIntervalParam() {
+    return getParam(4, "Auto Turn-Off Timer(0,Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
+}
+
+private getAutoOnIntervalParam() {
+    return getParam(6, "Auto Turn-On Timer(0,Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
+}
+
+private getPowerFailureRecoveryParam() {
+    return getParam(8, "Power Failure Recovery", 1, 0, powerFailureRecoveryOptions)
 }
 
 private getParam(num, name, size, defaultVal, options=null, range=null) {
@@ -378,7 +500,9 @@ private static isDuplicateCommand(lastExecuted, allowedMil) {
 }
 
 private logDebug(msg) {
-    log.debug "$msg"
+    if (state.debugLoggingEnabled) {
+        log.debug "$msg"
+    }
 }
 
 private logTrace(msg) {
