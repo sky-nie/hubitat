@@ -39,6 +39,13 @@
       "namespace": "sky-nie",
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/mini-smart-plug-dimmer.src/mini-smart-plug-dimmer.groovy",
       "required": false
+    },
+    {
+      "id": "85d5eba5-2e06-4380-8f94-1163af5c091e",
+      "name": "In-Wall Smart Switch Dimmer",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/in-wall-smart-switch-dimmer.src/in-wall-smart-switch-dimmer.groovy",
+      "required": false
     }
   ]
 }
