@@ -27,13 +27,6 @@
       "required": false
     },
     {
-      "id": "0235cfa2-f902-41b2-acad-d6894d5c4266",
-      "name": "Mini Smart Plug",
-      "namespace": "sky-nie",
-      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/mini-smart-plug.src/mini-smart-plug.groovy",
-      "required": false
-    },
-    {
       "id": "50795455-2814-48a2-9bfa-038c246677eb",
       "name": "Mini Smart Plug Dimmer",
       "namespace": "sky-nie",
@@ -45,6 +38,13 @@
       "name": "In-Wall Smart Switch Dimmer",
       "namespace": "sky-nie",
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/in-wall-smart-switch-dimmer.src/in-wall-smart-switch-dimmer.groovy",
+      "required": false
+    },
+    {
+      "id": "e1c66bd4-159d-4861-94ef-43013de63e96",
+      "name": "In-Wall Smart Switch",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/in-wall-smart-switch.src/in-wall-smart-switch.groovy",
       "required": false
     }
   ]
