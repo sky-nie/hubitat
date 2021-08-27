@@ -43,7 +43,7 @@ metadata {
 		capability "Health Check"
 		attribute "energyDays",  "number"
 		attribute "energyStatus", "string"
-		attribute "amperage",  "number"
+		capability "CurrentMeter"
 		attribute "firmwareVersion", "number"
 
 		attribute "lastCheckin", "string"
@@ -206,8 +206,7 @@ private getMinimumReportingInterval() {
 
 def ping() {
 	logDebug "ping()..."
-	sendHubCommand(switchBinaryGetCmd())
-	return []
+	return [switchBinaryGetCmd()]
 }
 
 def on() {
