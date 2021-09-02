@@ -36,7 +36,7 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
-*/
+ */
 import groovy.transform.Field
 private static Map getCommandClassVersions() {
     [
@@ -103,8 +103,8 @@ metadata {
         attribute "firmwareVersion", "string"
         attribute "lastCheckIn", "string"
 
-        fingerprint model: "D001", mfr: "0312", prod: "0924", deviceJoinName: "S2 Remote Control Switch", inClusters:"0x5E,0x55,0x9F,0x6C"
-        fingerprint model: "D001", mfr: "0312", prod: "0924", deviceJoinName: "S2 Remote Control Switch", inClusters:"0x5E,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x73,0x80,0x5B,0x26,0x9F,0x70,0x84,0x6C,0x7A"
+        fingerprint model: "D001", mfr: "0312", prod: "0924", deviceJoinName: "Minoston Remote Control Switch", inClusters:"0x5E,0x55,0x9F,0x6C"
+        fingerprint model: "D001", mfr: "0312", prod: "0924", deviceJoinName: "Minoston Remote Control Switch", inClusters:"0x5E,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x73,0x80,0x5B,0x26,0x9F,0x70,0x84,0x6C,0x7A"
     }
 
     preferences {
@@ -604,7 +604,11 @@ void initialize() {
             def child = addChildDevice("sky-nie", "Child Button", "${device.deviceNetworkId}:${i}", device.hubId,
                     [completedSetup: true, label: "${device.displayName} button ${i}",
                      isComponent: true, componentName: "button$i", componentLabel: "Button $i"])
-            child.sendEvent(name: "supportedButtonValues", value:  ["pushed", "released", "held", "double", "pushed_3x"].encodeAsJson(), displayed: false)
+            child.sendEvent(name: "pushed", value: 1)
+            child.sendEvent(name: "released", value: 1)
+            child.sendEvent(name: "held", value: 1)
+            child.sendEvent(name: "double", value: 1)
+            child.sendEvent(name: "pushed_3x", value: 1)
             child.sendEvent(name: "button", value: "pushed", data: [buttonNumber: 1], descriptionText: "$child.displayName was pushed", isStateChange: true, displayed: false)
         }
     } else if (device.label != state.oldLabel) {
@@ -636,9 +640,9 @@ void initialize() {
 }
 
 void sendCommands(List<String> cmds, Integer delay=300) {
-	if (cmds) {
-		sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, delay), hubitat.device.Protocol.ZWAVE))
-	}
+    if (cmds) {
+        sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, delay), hubitat.device.Protocol.ZWAVE))
+    }
 }
 
 String secureCmd(cmd) {
