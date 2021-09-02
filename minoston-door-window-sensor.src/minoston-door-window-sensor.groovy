@@ -32,7 +32,7 @@
  *    1.0.0 (04/26/2021)
  *      - Initial Release
  *
- * Reference：
+ * Reference:
  *   https://community.smartthings.com/t/release-aeotec-trisensor/140556?u=krlaframboise
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
@@ -62,7 +62,6 @@ metadata {
             name: "Minoston Door/Window Sensor",
             namespace: "sky-nie",
             author: "winnie",
-            executeCommandsLocally: false,
             importUrl: "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston-door-window-sensor.src/minoston-door-window-sensor.groovy"
 	) {
 		capability "Sensor"
@@ -137,7 +136,7 @@ def executeConfigure() {
 }
 
 void sendCommands(cmds) {
-	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 500), hubitat.device.Protocol.ZWAVE))
+	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 300), hubitat.device.Protocol.ZWAVE))
 }
 
 private getConfigCmds() {
@@ -405,20 +404,20 @@ private static getCommandClassVersions() {
 		0x30: 2,  // SensorBinary             //SensorBinaryReport
 		0x31: 5,  // SensorMultilevel         //SensorMultilevelReport
 		0x55: 1,  // TransportServices
-		0x59: 1,  // AssociationGrpInfo       //AssociationGroupInfoReport    //DTH unimplemented interface
-		0x5A: 1,  // DeviceResetLocally       //DeviceResetLocallyNotification//DTH unimplemented interface
+		0x59: 1,  // AssociationGrpInfo       //AssociationGroupInfoReport*
+		0x5A: 1,  // DeviceResetLocally       //DeviceResetLocallyNotification*
 		0x5E: 2,  // ZwaveplusInfo
-		0x6C: 1,  // Supervision              //SupervisionGet                //DTH unimplemented interface
+		0x6C: 1,  // Supervision              //SupervisionGet*
 		0x70: 1,  // Configuration            //ConfigurationReport
 		0x71: 3,  // Notification             //NotificationReport
-		0x72: 2,  // ManufacturerSpecific     //ManufacturerSpecificReport    //DTH unimplemented interface
+		0x72: 2,  // ManufacturerSpecific     //ManufacturerSpecificReport*
 		0x73: 1,  // Powerlevel
-		0x7A: 2,  // FirmwareUpdateMd         //FirmwareMdReport              //DTH unimplemented interface
+		0x7A: 2,  // FirmwareUpdateMd         //FirmwareMdReport*
 		0x80: 1,  // Battery                  //BatteryReport
-		0x84: 1,  // WakeUp                   //WakeUpIntervalReport          //DTH unimplemented interface
-		0x85: 2,  // Association              //AssociationReport             //DTH unimplemented interface
-		0x86: 1,  // Version                  //VersionReport                 //DTH unimplemented interface
-		0x8E: 2,  // MultChannelAssociation   //MultiChannelAssociationReport //DTH unimplemented interface
+		0x84: 1,  // WakeUp                   //WakeUpIntervalReport*
+		0x85: 2,  // Association              //AssociationReport*
+		0x86: 1,  // Version                  //VersionReport *
+		0x8E: 2,  // MultChannelAssociation   //MultiChannelAssociationReport*
 		0x87: 1,  // Indicator                //IndicatorReport
 		0x9F: 1   // Security S2              //SecurityMessageEncapsulation
 	]
@@ -443,21 +442,21 @@ private static getLightSensorType() { return 5 }
 // Configuration Parameters
 private getConfigParams() {
 	[
-		batteryReportThresholdParam,
-		lowBatteryAlarmReportParam,
-		sensorModeWhenClosedParam,
-		delayReportSecondsWhenClosedParam,
-		delayReportSecondsWhenOpenedParam,
-		minTemperatureOffsetParam,
-		minHumidityOffsetParam,
-		temperatureUpperWatermarkParam,
-		temperatureLowerWatermarkParam,
-		humidityUpperWatermarkParam,
-		humidityLowerWatermarkParam,
-		switchTemperatureUnitParam,
-		temperatureOffsetParam,
-		humidityOffsetParam,
-		associationGroupSettingParam
+	batteryReportThresholdParam,
+	lowBatteryAlarmReportParam,
+	sensorModeWhenClosedParam,
+	delayReportSecondsWhenClosedParam,
+	delayReportSecondsWhenOpenedParam,
+	minTemperatureOffsetParam,
+	minHumidityOffsetParam,
+	temperatureUpperWatermarkParam,
+	temperatureLowerWatermarkParam,
+	humidityUpperWatermarkParam,
+	humidityLowerWatermarkParam,
+	switchTemperatureUnitParam,
+	temperatureOffsetParam,
+	humidityOffsetParam,
+	associationGroupSettingParam
 	]
 }
 
