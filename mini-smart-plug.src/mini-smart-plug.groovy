@@ -1,5 +1,5 @@
 /**
- *      Mini Smart Plug v2.0.1(HUBITAT)
+ *      Mini Smart Plug v2.0.2(HUBITAT)
  *
  *  	Models: MINOSTON (MP21Z) And Eva Logik (ZW30) / MINOSTON (MS10Z)
  *
@@ -10,6 +10,7 @@
  *
  *  Changelog:
  *
+ *    2.0.2 (09/02/2021)
  *    2.0.1 (08/27/2021)
  *      - Syntax format compliance adjustment
  *      - fix some bugs
@@ -105,7 +106,8 @@ private initialize() {
     if (device.latestValue("checkInterval") != checkInterval) {
         sendEvent(name: "checkInterval", value: checkInterval, displayed: false)
     }
-    if(isButtonAvailable()) {
+    if (isButtonAvailable()) {
+        state.createButtonEnabled = (safeToInt(settings?.createButton) != 0)
         if (state.createButtonEnabled && !childDevices) {
             try {
                 def child = addChildButton()
@@ -116,21 +118,24 @@ private initialize() {
         } else if (!state.createButtonEnabled && childDevices) {
             removeChildButton(childDevices[0])
         }
+    } else {
+        if (childDevices) {
+            removeChildButton(childDevices[0])
+        }
     }
 }
 
 private addChildButton() {
     log.warn "Creating Button Device"
     def child = addChildDevice(
-            "smartthings",
-            "Child Button",
+            "hubitat",
+            "Virtual Button",
             "${device.deviceNetworkId}-2",
-            device.getHub().getId(),
             [
-                    completedSetup: true,
-                    isComponent: false,
-                    label: "plugButton",
-                    componentLabel: "${device.displayName[0..-8]} Button"
+                completedSet: true,
+                isComponent: false,
+                label: "plugButton",
+                componentLabel: "${device.displayName[0..-8]} Button"
             ]
     )
     child?.sendEvent(name: "pushed", value: 1)
@@ -143,6 +148,21 @@ private addChildButton() {
     return child
 }
 
+def installed() {
+    logDebug "installed()..."
+    if (isButtonAvailable()) {
+        state.createButtonEnabled = true
+    }
+    sendEvent(name: "checkInterval", value: checkInterval, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
+}
+
+def uninstalled() {
+    logger("debug", "uninstalled()")
+    if (childDevices) {
+        removeChildButton(childDevices[0])
+    }
+}
+
 private removeChildButton(child) {
     try {
         log.warn "Removing ${child.displayName}} "
@@ -150,14 +170,6 @@ private removeChildButton(child) {
     } catch (ex) {
         log.error("Unable to remove ${child.displayName}!  Make sure that the device is not being used by any SmartApps.", ex)
     }
-}
-
-def installed() {
-    logDebug "installed()..."
-    if (isButtonAvailable()) {
-        state.createButtonEnabled = true
-    }
-    sendEvent(name: "checkInterval", value: checkInterval, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
 }
 
 private static def getCheckInterval() {
@@ -169,16 +181,8 @@ private static def getCheckInterval() {
 def updated() {
     if (!isDuplicateCommand(state.lastUpdated, 5000)) {
         state.lastUpdated = new Date().time
-
         logDebug "updated()..."
-        if (device.latestValue("checkInterval") != checkInterval) {
-            sendEvent(name: "checkInterval", value: checkInterval, displayed: false)
-        }
-        if(isButtonAvailable()) {
-            state.createButtonEnabled = (safeToInt(settings?.createButton) != 0)
-        }
         initialize()
-
         runIn(5, executeConfigureCmds, [overwrite: true])
     }
     return []
@@ -262,6 +266,7 @@ private secureCmd(cmd) {
             return cmd.format()
         }
     } catch (ex) {
+        log.error "${ex}"
         return cmd.format()
     }
 }
@@ -312,10 +317,8 @@ def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
     logTrace "VersionReport: ${cmd}"
-
     def subVersion = String.format("%02d", cmd.applicationSubVersion)
     def fullVersion = "${cmd.applicationVersion}.${subVersion}"
-
     sendEvent(name:  "firmwareVersion", value:  fullVersion)
     return []
 }
@@ -334,7 +337,7 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
 
 private sendSwitchEvents(rawVal, type) {
     sendEvent(name:  "switch", value:  (rawVal == 0xFF) ? "on" : "off", displayed:  true, type:  type)
-    if(isButtonAvailable()) {
+    if (isButtonAvailable()) {
         def paddlesReversed = (paddleControlParam.value == 1)
         if (state.createButtonEnabled && (type == "physical") && childDevices) {
             if (paddleControlParam.value == 2) {
@@ -406,21 +409,15 @@ private static getPaddleControlOptions() {
     ]
 }
 
-def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cmd){
+def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cmd) {
     if (state.lastSequenceNumber != cmd.sequenceNumber) {
         state.lastSequenceNumber = cmd.sequenceNumber
         logTrace "${cmd}"
         def paddle = (cmd.sceneNumber == 1) ? "down" : "up"
         def btnVal
-        switch (cmd.keyAttributes){
+        switch (cmd.keyAttributes) {
             case 0:
                 btnVal = paddle
-                break
-            case 1:
-                logDebug "Button released not supported"
-                break
-            case 2:
-                logDebug "Button held not supported"
                 break
             case 3:
                 btnVal = paddle + "_2x"
@@ -466,7 +463,6 @@ private getPowerFailureRecoveryParam() {
 
 private getParam(num, name, size, defaultVal, options=null, range=null) {
     def val = safeToInt((settings ? settings["configParam${num}"] : null), defaultVal)
-
     def map = [num: num, name: name, size: size, value: val]
     if (options) {
         map.valueName = options?.find { k, v -> "${k}" == "${val}" }?.value
@@ -475,7 +471,6 @@ private getParam(num, name, size, defaultVal, options=null, range=null) {
     if (range) {
         map.range = range
     }
-
     return map
 }
 
@@ -489,13 +484,13 @@ private static setDefaultOption(options, defaultVal) {
 }
 
 private getAlternativeLedOptions() {
-    if(isButtonAvailable()){
+    if (isButtonAvailable()) {
         return [
                 "0":"On When On",
                 "1":"Off When On",
                 "2":"Always Off"
         ]
-    }else{
+    } else {
         return [
                 "0":"Off When On",
                 "1":"On When On",
@@ -530,17 +525,11 @@ private logTrace(msg) {
 }
 
 private isButtonAvailable() {
-    if(device == null){
+    if (device == null) {
         log.error "isButtonAvailable device = null"
         return true
-    }else{
+    } else {
         log.debug "isButtonAvailable device.rawDescription = ${device.rawDescription}"
-        def v20 = "${device.rawDescription}".contains("model:EE01")
-        def v21 = "${device.rawDescription}".contains("model:EE03")
-        def v22 = "${device.rawDescription}".contains("model:A005")
-        def v23 = "${device.rawDescription}".contains("model:BB01")
-        def v24 = "${device.rawDescription}".contains("model:BB03")
-        def v2 = v20||v21||v22||v23||v24
-        return v2
+        return "${device.rawDescription}".contains("model:EE01") || "${device.rawDescription}".contains("model:EE03") || "${device.rawDescription}".contains("model:A005") || "${device.rawDescription}".contains("model:BB01") || "${device.rawDescription}".contains("model:BB03")
     }
 }
