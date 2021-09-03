@@ -58,7 +58,7 @@ import groovy.transform.Field
 @Field static int NOTIFICATION_EVENT_TEMPERING = 0x03
 
 metadata {
-	definition(
+	definition (
             name: "Minoston Door/Window Sensor",
             namespace: "sky-nie",
             author: "winnie",
@@ -84,7 +84,7 @@ metadata {
 			if (it.range) {
 				input "configParam${it.num}", "number", title: "${it.name}:", required: false, defaultValue: "${it.value}", range: it.range
 			} else {
-				input "configParam${it.num}", "enum", title: "${it.name}:", required: false, defaultValue: "${it.value}", options:it.options
+				input "configParam${it.num}", "enum", title: "${it.name}:", required: false, defaultValue: "${it.value}", options: it.options
 			}
 		}
 	}
@@ -105,21 +105,18 @@ private static def getCheckInterval() {
 def updated() {
 	if (!isDuplicateCommand(state.lastUpdated, 5000)) {
 		state.lastUpdated = new Date().time
-
 		log.trace "updated()"
 		if (device.latestValue("checkInterval") != checkInterval) {
 			sendEvent(name: "checkInterval", value: checkInterval, displayed: false)
 		}
 
 		refreshPendingChanges()
-
 		logForceWakeupMessage "Configuration changes will be sent to the device the next time it wakes up."
 	}
 }
 
 def configure() {
 	log.trace "configure()"
-
 	runIn(8, executeConfigure)
 }
 
@@ -130,12 +127,6 @@ def executeConfigure() {
 	]
 
 	cmds += getConfigCmds()
-	if (cmds) {
-		sendCommands(cmds)
-	}
-}
-
-void sendCommands(cmds) {
 	sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 300), hubitat.device.Protocol.ZWAVE))
 }
 
@@ -149,7 +140,6 @@ private getConfigCmds() {
 			log.debug "Changing ${param.name}(#${param.num}) from ${storedVal} to ${param.value}"
 			cmds << secureCmd(zwave.configurationV1.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: param.value))
 			cmds << configGetCmd(param)
-
 			if (param.num == minTemperatureOffsetParam.num) {
 				cmds << "delay 3000"
 				cmds << sensorMultilevelGetCmd(tempSensorType)
@@ -195,7 +185,6 @@ def parse(String description) {
 		} else {
 			log.debug "Unable to parse description: $description"
 		}
-
 		sendEvent(name: "lastCheckIn", value: convertToLocalTimeString(new Date()), displayed: false)
 	} catch (e) {
 		log.error "$e"
@@ -205,7 +194,6 @@ def parse(String description) {
 
 def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
 	def encapCmd = cmd.encapsulatedCommand(commandClassVersions)
-
 	def result = []
 	if (encapCmd) {
 		result += zwaveEvent(encapCmd)
@@ -217,7 +205,6 @@ def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cm
 
 def zwaveEvent(hubitat.zwave.commands.wakeupv1.WakeUpNotification cmd) {
 	log.debug "Device Woke Up"
-
 	def cmds = []
 	if (state.refreshConfig || pendingChanges > 0) {
 		cmds += getConfigCmds()
@@ -277,13 +264,10 @@ def zwaveEvent(hubitat.zwave.commands.sensormultilevelv5.SensorMultilevelReport 
 
 def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
 	log.trace "ConfigurationReport ${cmd}"
-
 	runIn(4, refreshPendingChanges)
-
 	def param = configParams.find { it.num == cmd.parameterNumber }
 	if (param) {
 		def val = cmd.scaledConfigurationValue
-
 		log.debug "${param.name}(#${param.num}) = ${val}"
 		state["configParam${param.num}"] = val
 	} else {
@@ -299,11 +283,10 @@ def refreshPendingChanges() {
 def zwaveEvent(hubitat.zwave.commands.notificationv3.NotificationReport cmd) {
 	log.trace "NotificationReport: $cmd"
 	def result = []
-
-	if(cmd.notificationType == NOTIFICATION_TYPE_ACCESS_CONTROL){
-		if(cmd.event == NOTIFICATION_EVENT_DOOR_WINDOW_OPEN){
+	if (cmd.notificationType == NOTIFICATION_TYPE_ACCESS_CONTROL) {
+		if (cmd.event == NOTIFICATION_EVENT_DOOR_WINDOW_OPEN){
 			result << sensorValueEvent(1)
-		} else if(cmd.event == NOTIFICATION_EVENT_DOOR_WINDOW_CLOSED) {
+		} else if (cmd.event == NOTIFICATION_EVENT_DOOR_WINDOW_CLOSED) {
 			result << sensorValueEvent(0)
 		}
 	} else if (cmd.notificationType == NOTIFICATION_TYPE_HOME_SECURITY) {
@@ -349,7 +332,7 @@ def zwaveEvent(hubitat.zwave.Command cmd) {
 	return []
 }
 
-private getEventMap(name, value, displayed=null, desc=null, unit=null) {
+private getEventMap(name, value, displayed = null, desc = null, unit = null) {
 	def isStateChange = (device.currentValue(name) != value)
 	displayed = (displayed == null ? isStateChange : displayed)
 	def eventMap = [
@@ -520,7 +503,7 @@ private getAssociationGroupSettingParam() {
 	return getParam(19, "Association Group 2 Setting", 1, 1, associationGroupSettingOptions)
 }
 
-private getParam(num, name, size, defaultVal, options=null, range=null) {
+private getParam(num, name, size, defaultVal, options = null, range = null) {
 	def val = safeToInt((settings ? settings["configParam${num}"] : null), defaultVal)
 
 	def map = [num: num, name: name, size: size, value: val]
