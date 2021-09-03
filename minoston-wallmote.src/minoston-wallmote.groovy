@@ -601,8 +601,8 @@ void initialize() {
     if (!childDevices) {
         state.oldLabel = device.label
         for (i in 1..4) {
-            def child = addChildDevice("sky-nie", "Child Button", "${device.deviceNetworkId}:${i}", device.hubId,
-                    [completedSetup: true, label: "${device.displayName} button ${i}",
+            def child = addChildDevice("hubitat", "Virtual Button", "${device.deviceNetworkId}:${i}",
+                    [completedSet: true, label: "${device.displayName} button ${i}",
                      isComponent: true, componentName: "button$i", componentLabel: "Button $i"])
             child.sendEvent(name: "pushed", value: 1)
             child.sendEvent(name: "released", value: 1)
