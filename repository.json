@@ -9,7 +9,30 @@
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/packageManifest.json",
       "description": "Package for Minoston",
       "tags": [
-        "Doors & Windows","Temperature & Humidity","Lights & Switches","Energy Monitoring"
+        "Doors & Windows",
+        "Temperature & Humidity",
+        "Lights & Switches",
+        "Energy Monitoring"
+      ]
+    },
+    {
+      "id": "911071c9-eaae-4d07-8a18-42afd490239b",
+      "name": "Package EVALOGIK",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/packageManifest_EVALOGIK.json",
+      "description": "Package for EVALOGIK",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "d72c127a-e337-4433-b8c2-969e3a1c071c",
+      "name": "Package NEW ONE",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/packageManifest_NEW_ONE.json",
+      "description": "Package for NEW ONE",
+      "tags": [
+        "Lights & Switches"
       ]
     }
   ]
