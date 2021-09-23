@@ -1,5 +1,5 @@
 /**
- *      Mini Smart Plug v2.0.2(HUBITAT)
+ *      Mini Smart Plug v2.1.1(HUBITAT)
  *
  *  	Models: MINOSTON (MP21Z) And Eva Logik (ZW30) / MINOSTON (MS10Z)
  *
@@ -9,6 +9,16 @@
  *	Documentation:
  *
  *  Changelog:
+ *
+ *    2.1.1 (09/07/2021)
+ *      - Syntax format compliance adjustment
+ *      - delete dummy code
+ *
+ *    2.1.0 (09/04/2021)
+ *      - remove the preferences item "createButton", Fixedly create a child button
+ *        Restrict its use based on fingerprints--because the child buttons is not visible to the user .
+ *      - fix a bug: when isButtonAvailable() return false,getLedModeParam is conflict with getPaddleControlParam
+ *      - Simplify the code, Syntax format compliance adjustment
  *
  *    2.0.2 (09/02/2021)
  *    2.0.1 (08/27/2021)
@@ -57,7 +67,6 @@ metadata {
             author: "winnie",
             mnmn: "SmartThings",
             vid:"generic-switch",
-            ocfDeviceType: "oic.d.smartplug",
             importUrl: "https://raw.githubusercontent.com/sky-nie/hubitat/main/mini-smart-plug.src/mini-smart-plug.groovy"
     ) {
         capability "Actuator"
@@ -70,14 +79,14 @@ metadata {
         attribute "firmwareVersion", "string"
         attribute "syncStatus", "string"
 
-//        fingerprint mfr: "0312", prod: "C000", model: "C009", deviceJoinName: "Minoston Outlet" // old MP21Z
-//        fingerprint mfr: "0312", prod: "FF00", model: "FF0C", deviceJoinName: "Minoston Outlet" //MP21Z Minoston Mini Smart Plug
-        fingerprint mfr: "0312", prod: "AC01", model: "4001", deviceJoinName: "New One Outlet"  // N4001 New One  Mini Smart Plug
-//        fingerprint mfr: "0312", prod: "EE00", model: "EE01", deviceJoinName: "Minoston Switch"//MS10ZS Minoston Smart Switch
-        fingerprint mfr: "0312", prod: "EE00", model: "EE03", deviceJoinName: "Minoston Switch" //MS12ZS Minoston Smart on/off Toggle Switch
-//        fingerprint mfr: "0312", prod: "A000", model: "A005", deviceJoinName: "Evalogik Switch"//ZW30
-        fingerprint mfr: "0312", prod: "BB00", model: "BB01", deviceJoinName: "Evalogik Switch" //ZW30S Evalogik Smart on/off Switch
-        fingerprint mfr: "0312", prod: "BB00", model: "BB03", deviceJoinName: "Evalogik Switch" //ZW30TS Evalogik Smart on/off Toggle Switch
+//        fingerprint mfr: "0312", prod: "C000", model: "C009", deviceJoinName: "Minoston Outlet", ocfDeviceType: "oic.d.smartplug" // old MP21Z
+//        fingerprint mfr: "0312", prod: "FF00", model: "FF0C", deviceJoinName: "Minoston Outlet", ocfDeviceType: "oic.d.smartplug" //MP21Z Minoston Mini Smart Plug
+        fingerprint mfr: "0312", prod: "AC01", model: "4001", deviceJoinName: "New One Outlet",  ocfDeviceType: "oic.d.smartplug" // N4001 New One  Mini Smart Plug
+//        fingerprint mfr: "0312", prod: "EE00", model: "EE01", deviceJoinName: "Minoston Switch", ocfDeviceType: "oic.d.switch"  //MS10ZS Minoston Smart Switch
+        fingerprint mfr: "0312", prod: "EE00", model: "EE03", deviceJoinName: "Minoston Switch", ocfDeviceType: "oic.d.switch"    //MS12ZS Minoston Smart on/off Toggle Switch
+//        fingerprint mfr: "0312", prod: "A000", model: "A005", deviceJoinName: "Evalogik Switch", ocfDeviceType: "oic.d.switch"  //ZW30
+        fingerprint mfr: "0312", prod: "BB00", model: "BB01", deviceJoinName: "Evalogik Switch", ocfDeviceType: "oic.d.switch"    //ZW30S Evalogik Smart on/off Switch
+        fingerprint mfr: "0312", prod: "BB00", model: "BB03", deviceJoinName: "Evalogik Switch", ocfDeviceType: "oic.d.switch"    //ZW30TS Evalogik Smart on/off Toggle Switch
     }
 
     preferences {
@@ -87,10 +96,9 @@ metadata {
         getConfigParamInput(powerFailureRecoveryParam)
         input "disclaimer", "paragraph",
                 title: "WARNING",
-                description: "Configuring for 'Paddle Control' and 'createButton' are only valid for the devices with product number of MS10ZS, MS12ZS, ZW30, ZW30S, ZW30TS(one of them)",
+                description: "Configuring for 'Paddle Control'is only valid for the devices with product number of MS10ZS, MS12ZS, ZW30, ZW30S, ZW30TS(one of them)",
                 required: false
         getConfigParamInput(paddleControlParam)
-        input(type: "enum", name: "createButton", required: false, title: "Create Button for Paddles?", options: ["No", "Yes"], defaultValue:"Yes")
     }
 }
 
@@ -99,29 +107,6 @@ private getConfigParamInput(param) {
         input "configParam${param.num}", "number", title: "${param.name}:", required: false, defaultValue: "${param.value}", range: param.range
     } else {
         input "configParam${param.num}", "enum", title: "${param.name}:", required: false, defaultValue: "${param.value}", options: param.options
-    }
-}
-
-private initialize() {
-    if (device.latestValue("checkInterval") != checkInterval) {
-        sendEvent(name: "checkInterval", value: checkInterval, displayed: false)
-    }
-    if (isButtonAvailable()) {
-        state.createButtonEnabled = (safeToInt(settings?.createButton) != 0)
-        if (state.createButtonEnabled && !childDevices) {
-            try {
-                def child = addChildButton()
-                child?.sendEvent(name: "checkInterval", value: checkInterval, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
-            } catch (ex) {
-                log.error("Unable to create button device because the 'Child Button' DTH is not installed",ex)
-            }
-        } else if (!state.createButtonEnabled && childDevices) {
-            removeChildButton(childDevices[0])
-        }
-    } else {
-        if (childDevices) {
-            removeChildButton(childDevices[0])
-        }
     }
 }
 
@@ -150,26 +135,7 @@ private addChildButton() {
 
 def installed() {
     logDebug "installed()..."
-    if (isButtonAvailable()) {
-        state.createButtonEnabled = true
-    }
     sendEvent(name: "checkInterval", value: checkInterval, displayed: false, data: [protocol: "zwave", hubHardwareId: device.hub.hardwareID])
-}
-
-def uninstalled() {
-    logger("debug", "uninstalled()")
-    if (childDevices) {
-        removeChildButton(childDevices[0])
-    }
-}
-
-private removeChildButton(child) {
-    try {
-        log.warn "Removing ${child.displayName}} "
-        deleteChildDevice(child.deviceNetworkId)
-    } catch (ex) {
-        log.error("Unable to remove ${child.displayName}!  Make sure that the device is not being used by any SmartApps.", ex)
-    }
 }
 
 private static def getCheckInterval() {
@@ -182,7 +148,16 @@ def updated() {
     if (!isDuplicateCommand(state.lastUpdated, 5000)) {
         state.lastUpdated = new Date().time
         logDebug "updated()..."
-        initialize()
+        if (device.latestValue("checkInterval") != checkInterval) {
+            sendEvent(name: "checkInterval", value: checkInterval, displayed: false)
+        }
+        if (isButtonAvailable() && !childDevices) {
+            try {
+                addChildButton()
+            } catch (ex) {
+                log.error("Unable to create button device because the 'Child Button' DTH is not installed", ex)
+            }
+        }
         runIn(5, executeConfigureCmds, [overwrite: true])
     }
     return []
@@ -190,7 +165,6 @@ def updated() {
 
 def configure() {
     logDebug "configure()..."
-
     if (state.resyncAll == null) {
         state.resyncAll = true
         runIn(8, executeConfigureCmds, [overwrite: true])
@@ -211,11 +185,6 @@ def executeConfigureCmds() {
     configParams.each { param ->
         def storedVal = getParamStoredValue(param.num)
         def paramVal = param.value
-        if (isButtonAvailable()) {
-            if ((param == paddleControlParam) && state.createButtonEnabled && (param.value == 2)) {
-                log.warn "Only 'pushed', 'up_2x', and 'down_2x' button events are supported when Paddle Control is set to Toggle."
-            }
-        }
         if (state.resyncAll || ("${storedVal}" != "${paramVal}")) {
             cmds << secureCmd(zwave.configurationV1.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: paramVal))
             cmds << secureCmd(zwave.configurationV1.configurationGet(parameterNumber: param.num))
@@ -266,7 +235,7 @@ private secureCmd(cmd) {
             return cmd.format()
         }
     } catch (ex) {
-        log.error "${ex}"
+        log.error("secureCmd exception", ex)
         return cmd.format()
     }
 }
@@ -287,8 +256,8 @@ def parse(String description) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cmd) {
+    logTrace "SecurityMessageEncapsulation: ${cmd}"
     def encapsulatedCmd = cmd.encapsulatedCommand(commandClassVersions)
-
     def result = []
     if (encapsulatedCmd) {
         result += zwaveEvent(encapsulatedCmd)
@@ -299,11 +268,9 @@ def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cm
 }
 
 def zwaveEvent(hubitat.zwave.commands.configurationv1.ConfigurationReport cmd) {
-    logTrace "${cmd}"
-
+    logTrace "ConfigurationReport: ${cmd}"
     sendEvent(name:  "syncStatus", value:  "Syncing...", displayed:  false)
     runIn(4, refreshSyncStatus)
-
     def param = configParams.find { it.num == cmd.parameterNumber }
     if (param) {
         def val = cmd.scaledConfigurationValue
@@ -324,28 +291,27 @@ def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
-    logTrace "${cmd}"
+    logTrace "BasicReport: ${cmd}"
     sendSwitchEvents(cmd.value, "physical")
     return []
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
-    logTrace "${cmd}"
+    logTrace "SwitchBinaryReport: ${cmd}"
     sendSwitchEvents(cmd.value, "digital")
     return []
 }
 
 private sendSwitchEvents(rawVal, type) {
-    sendEvent(name:  "switch", value:  (rawVal == 0xFF) ? "on" : "off", displayed:  true, type:  type)
-    if (isButtonAvailable()) {
-        def paddlesReversed = (paddleControlParam.value == 1)
-        if (state.createButtonEnabled && (type == "physical") && childDevices) {
-            if (paddleControlParam.value == 2) {
-                sendButtonEvent("pushed")
-            } else {
-                def btnVal = ((rawVal && !paddlesReversed) || (!rawVal && paddlesReversed)) ? "up" : "down"
-                sendButtonEvent(btnVal)
-            }
+    def switchVal = (rawVal == 0xFF) ? "on" : "off"
+    sendEvent(name:  "switch", value: switchVal, displayed:  true, type:  type)
+    if (isButtonAvailable() && type == "physical") {
+        if (paddleControlParam.value == 2) {
+            sendButtonEvent("pushed")
+        } else {
+            def paddlesReversed = (paddleControlParam.value == 1)
+            def btnVal = ((rawVal && !paddlesReversed) || (!rawVal && paddlesReversed)) ? "up" : "down"
+            sendButtonEvent(btnVal)
         }
     }
 }
@@ -410,6 +376,7 @@ private static getPaddleControlOptions() {
 }
 
 def zwaveEvent(hubitat.zwave.commands.centralscenev1.CentralSceneNotification cmd) {
+    logTrace "CentralSceneNotification: ${cmd}"
     if (state.lastSequenceNumber != cmd.sequenceNumber) {
         state.lastSequenceNumber = cmd.sequenceNumber
         logTrace "${cmd}"
@@ -438,7 +405,8 @@ private sendButtonEvent(value) {
 }
 
 private getPaddleControlParam() {
-    return getParam(1, "Paddle Control", 1, 0, paddleControlOptions)
+    def num = isButtonAvailable()? 1 : 1000
+    return getParam(num, "Paddle Control", 1, 0, paddleControlOptions)
 }
 
 private getLedModeParam() {
@@ -461,7 +429,7 @@ private getPowerFailureRecoveryParam() {
     return getParam(num, "Power Failure Recovery", 1, 0, powerFailureRecoveryOptions)
 }
 
-private getParam(num, name, size, defaultVal, options=null, range=null) {
+private getParam(num, name, size, defaultVal, options = null, range = null) {
     def val = safeToInt((settings ? settings["configParam${num}"] : null), defaultVal)
     def map = [num: num, name: name, size: size, value: val]
     if (options) {
@@ -508,7 +476,7 @@ private static getPowerFailureRecoveryOptions() {
     ]
 }
 
-private static safeToInt(val, defaultVal=0) {
+private static safeToInt(val, defaultVal = 0) {
     return "${val}"?.isInteger() ? "${val}".toInteger() : defaultVal
 }
 
