@@ -1,0 +1,23 @@
+{
+  "packageName": "NEW ONE Package",
+  "author": "winnie",
+  "version": "1.0.4",
+  "minimumHEVersion": "2.1.9",
+  "dateReleased": "2021-08-12",
+  "drivers": [
+    {
+      "id": "50795455-2814-48a2-9bfa-038c246677eb",
+      "name": "Mini Smart Plug Dimmer",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/mini-smart-plug-dimmer.src/mini-smart-plug-dimmer.groovy",
+      "required": false
+    },
+    {
+      "id": "2e4a45d1-f213-48da-aa4c-a8a8458f8dbe",
+      "name": "Mini Smart Plug",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/mini-smart-plug.src/mini-smart-plug.groovy",
+      "required": false
+    }
+  ]
+}
