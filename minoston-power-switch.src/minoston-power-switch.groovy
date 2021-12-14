@@ -1,7 +1,7 @@
 /**
  *  Minoston Power Switch v1.0.0(HUBITAT)
  *
- *  (Models: MP21ZP)
+ *  (Models: MP21ZP & MP22ZP)
  *
  *  Author:
  *   winnie (sky-nie)
@@ -60,6 +60,7 @@ metadata {
 		command "reset"
 
 		fingerprint mfr:"0312", prod:"FF00", model:"FF0E", deviceJoinName: "Minoston Outlet Meter"//Mini Smart Plug Meter, MP21ZP
+		fingerprint mfr:"0312", prod:"FF00", model:"FF0F", deviceJoinName: "Minoston Outlet Meter"//Mini Smart Plug Meter, MP22ZP
 	}
 
 	preferences {
