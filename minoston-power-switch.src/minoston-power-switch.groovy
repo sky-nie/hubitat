@@ -196,11 +196,9 @@ def configure() {
 
 private getMinimumReportingInterval() {
 	def minVal = (60 * 60 * 24 * 7)
-	[powerReportIntervalParam, energyReportIntervalParam, voltageReportIntervalParam, electricityReportIntervalParam].each {
-		def val = convertOptionSettingToInt(it.options, it.val)
-		if (val && val < minVal) {
-			minVal = val
-		}
+	def val = getParamIntVal(powerReportIntervalParam)
+	if (val && val < minVal) {
+		minVal = val
 	}
 	return minVal
 }
