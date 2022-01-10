@@ -173,9 +173,11 @@ def configure() {
 	}
 
 	configParams.each { param ->
-		if (getParamIntVal(param) != getParamStoredIntVal(param)) {
-			def newVal = getParamIntVal(param)
-			logDebug "${param.name}(#${param.num}): changing ${getParamStoredIntVal(param)} to ${newVal}"
+        logTrace "param: ${param}"
+        def newVal = getParamIntVal(param)
+        def storeVal = getParamStoredIntVal(param)
+		if (newVal != storeVal) {
+			logDebug "${param.name}(#${param.num}): changing ${storeVal} to ${newVal}"
 			cmds << secureCmd(zwave.configurationV2.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: newVal))
 			cmds << secureCmd(zwave.configurationV2.configurationGet(parameterNumber: param.num))
 		}
@@ -557,12 +559,10 @@ private getParam(num, name, size, defaultVal, options=null, range=null) {
 }
 
 private static setDefaultOption(options, defaultVal) {
-	return options?.collect { k, v ->
-		if ("${k}" == "${defaultVal}") {
-			v = "${v} [DEFAULT]"
-		}
-		["$k": "$v"]
-	}
+    if (options != null  && options.containsKey(defaultVal)) {
+        options[defaultVal] = options[defaultVal] + " [DEFAULT]"
+    }
+	return options;
 }
 
 private static getLedModeOptions() {
@@ -628,11 +628,11 @@ private getAttrVal(attrName) {
 }
 
 private static convertOptionSettingToInt(options, settingVal) {
-	return safeToInt(options?.find { name, val -> "${settingVal}" == name }?.value, 0)
+    return safeToInt(options?.find { key, value -> value == settingVal}.key, 0)
 }
 
 private static getParamIntVal(param) {
-	return param.options ? convertOptionSettingToInt(param.options, param.val) : param.val
+	return param.options ? convertOptionSettingToInt(param.options, param.valueName) : param.value
 }
 
 private getParamStoredIntVal(param) {
