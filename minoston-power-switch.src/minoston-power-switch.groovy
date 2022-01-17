@@ -143,8 +143,7 @@ def updated() {
 			sendEvent(name: "firmwareVersion", value: roundTwoPlaces(device.currentValue("firmwareVersion")), displayed: true, isStateChange: true)
 		}
 
-		def cmds = configure()
-		return cmds ? response(cmds) : []
+		configure()
 	}
 }
 
