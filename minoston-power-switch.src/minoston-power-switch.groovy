@@ -178,8 +178,8 @@ def configure() {
         def storeVal = getParamStoredIntVal(param)
 		if (newVal != storeVal) {
 			logDebug "${param.name}(#${param.num}): changing ${storeVal} to ${newVal}"
-			cmds << secureCmd(zwave.configurationV2.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: newVal))
-			cmds << secureCmd(zwave.configurationV2.configurationGet(parameterNumber: param.num))
+			cmds << secureCmd(zwave.configurationV4.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: newVal))
+			cmds << secureCmd(zwave.configurationV4.configurationGet(parameterNumber: param.num))
 		}
 	}
 	result += cmds ? delayBetween(cmds, 1000) : []
@@ -195,6 +195,7 @@ def configure() {
 		result << "delay 1000"
 		result += refresh()
 	}
+	logTrace "sending ${result}"
 	return result
 }
 
@@ -230,14 +231,16 @@ def off() {
 
 def refresh() {
 	logDebug "refresh()..."
-	return delayBetween([
+    cmds = [
 		switchBinaryGetCmd(),
 		meterGetCmd(meterEnergy),
 		meterGetCmd(meterPower),
 		meterGetCmd(meterVoltage),
 		meterGetCmd(meterAmperage),
 		versionGetCmd()
-	], 1000)
+	]
+	configParams.each { param -> cmds << secureCmd(zwave.configurationV4.configurationGet(parameterNumber: param.num)) }
+	return delayBetween(cmds, 1000)
 }
 
 def setEnergyStatus(value) {
@@ -328,28 +331,30 @@ def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cm
 private static getCommandClassVersions() {
 	[
 		0x20: 1,	// Basic                       //BasicReport
-		0x25: 1,	// Switch Binary               //SwitchBinaryReport
+		0x25: 2,	// Switch Binary               //SwitchBinaryReport
 		0x27: 1,	// All Switch
-		0x2B: 1,	// Scene Activation
-		0x2C: 1,	// Scene Actuator Configuration//SceneActivationSet             //DTH unimplemented interface
-		0x32: 3,	// Meter v4                    //MeterReport
-		0x55: 1,	// Transport Service
-		0x59: 1,	// AssociationGrpInfo          //AssociationGroupInfoReport     //DTH unimplemented interface
+		0x32: 5,	// Meter V5                    //MeterReport
+		0x55: 2,	// Transport Service
+		0x59: 3,	// AssociationGrpInfo          //AssociationGroupInfoReport     //DTH unimplemented interface
 		0x5A: 1,	// DeviceResetLocally          //DeviceResetLocallyNotification //DTH unimplemented interface
 		0x5E: 2,	// ZwaveplusInfo
-		0x71: 3,	// NOTIFICATION_V8             //NotificationReport             //DTH unimplemented interface
-		0x70: 2,	// Configuration               //ConfigurationReport
+		0x6C: 1,	// Supervision
+		0x70: 4,	// Configuration               //ConfigurationReport
+		0x71: 8,	// Notification V8             //NotificationReport             //DTH unimplemented interface
 		0x72: 2,	// ManufacturerSpecific        //ManufacturerSpecificReport     //DTH unimplemented interface
 		0x73: 1,	// Powerlevel
-		0x7A: 2,	// Firmware Update Md (3)      //FirmwareMdReport               //DTH unimplemented interface
-		0x85: 2,	// Association                 //AssociationReport              //DTH unimplemented interface
-		0x86: 1,	// Version (2)                 //VersionReport
-		0x8E: 2,	// Multi Channel Association   //MultiChannelAssociationReport  //DTH unimplemented interface
-		0x98: 1		// Security 0                  //SecurityMessageEncapsulation
+		0x7A: 5,	// Firmware Update Md V5       //FirmwareMdReport               //DTH unimplemented interface
+		0x85: 3,	// Association                 //AssociationReport              //DTH unimplemented interface
+		0x86: 2,	// Version V2                  //VersionReport
+		0x87: 3,	// Indicator V3
+		0x8E: 4,	// Multi Channel Association   //MultiChannelAssociationReport  //DTH unimplemented interface
+		0x98: 1,	// Security 0                  //SecurityMessageEncapsulation
+		0x9F: 2 	// Security 2
 	]
 }
 
 def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
+	logTrace "ZWave ConfigurationReport: ${cmd}"
 	state.configured = true
 	def configParam = configParams.find { param ->
 		param.num == cmd.parameterNumber
@@ -362,7 +367,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
-	logTrace "VersionReport: ${cmd}"
+	logTrace "ZWave VersionReport: ${cmd}"
 	def subVersion = String.format("%02d", cmd.applicationSubVersion)
 	def fullVersion = "${cmd.applicationVersion}.${subVersion}".toBigDecimal()
 	if (fullVersion != device.currentValue("firmwareVersion")) {
@@ -372,14 +377,14 @@ def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
-	logTrace "SwitchBinaryReport: ${cmd}"
+	logTrace "ZWave SwitchBinaryReport: ${cmd}"
 	def result = []
 	result << createSwitchEvent(cmd.value, "digital")
 	return result
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
-	logTrace "BasicReport: ${cmd}"
+	logTrace "ZWave BasicReport: ${cmd}"
 	def result = []
 	result << createSwitchEvent(cmd.value, "physical")
 	return result
@@ -393,7 +398,7 @@ private createSwitchEvent(value, type) {
 }
 
 def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
-	logTrace "MeterReport: $cmd"
+	logTrace "ZWave MeterReport: $cmd"
 	def result = []
 	def val = roundTwoPlaces(cmd.scaledMeterValue)
 
