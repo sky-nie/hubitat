@@ -21,7 +21,15 @@ hpm manifest-add-driver packageManifest.json --location=https://raw.githubuserco
 
 hpm manifest-add-driver packageManifest.json --location=https://raw.githubusercontent.com/sky-nie/hubitat/main/mini-smart-plug.src/mini-smart-plug.groovy --required=false
 
-hpm repository-add-package repository.json --manifest=https://raw.githubusercontent.com/sky-nie/hubitat/main/packageManifest_EVALOGIK.json --name="Package EVALOGIK" --category=Integrations --description="Package for EVALOGIK" --tags="Lights & Switches"
+hpm manifest-remove-driver --id=50795455-2814-48a2-9bfa-038c246677eb packageManifest.json
 
-hpm repository-add-package repository.json --manifest=https://raw.githubusercontent.com/sky-nie/hubitat/main/packageManifest_NEW_ONE.json --name="Package NEW ONE" --category=Integrations --description="Package for NEW ONE" --tags="Lights & Switches"
+hpm manifest-remove-driver --id=2e4a45d1-f213-48da-aa4c-a8a8458f8dbe packageManifest.json
+
+hpm manifest-add-driver packageManifest.json --location=https://raw.githubusercontent.com/sky-nie/hubitat/main/in-wall-smart-switch.src/in-wall-smart-switch.groovy --required=false
+
+hpm manifest-add-driver packageManifest.json --location=https://raw.githubusercontent.com/sky-nie/hubitat/main/in-wall-smart-switch-dimmer.src/in-wall-smart-switch-dimmer.groovy --required=false
+
+hpm manifest-add-driver packageManifest.json --location=https://raw.githubusercontent.com/sky-nie/hubitat/main/min-smart-plug.src/min-smart-plug.groovy --required=false
+
+hpm manifest-add-driver packageManifest.json --location=https://raw.githubusercontent.com/sky-nie/hubitat/main/min-smart-plug-dimmer.src/min-smart-plug-dimmer.groovy --required=false
 <hr />

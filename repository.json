@@ -4,10 +4,10 @@
   "packages": [
     {
       "id": "856a2f91-c0d1-4565-9442-0dcfad2cd125",
-      "name": "Package Minoston",
+      "name": "Package Minoston/Evalogic/NewOne",
       "category": "Integrations",
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/packageManifest.json",
-      "description": "Package for Minoston",
+      "description": "Package for Minoston/Evalogic/NewOne",
       "tags": [
         "Doors & Windows",
         "Temperature & Humidity",
