@@ -1,5 +1,5 @@
 /**
- *  Minoston Power Switch v1.0.0(HUBITAT)
+ *  Minoston Power Switch v1.1.0(HUBITAT)
  *
  *  (Models: MP21ZP & MP22ZP)
  *
@@ -8,6 +8,8 @@
  *
  *  Changelog:
  *
+ *    1.1.0 (01/18/2022)
+ *      - Fixed a bunch of error and clean up code.
  *    1.0.0 (07/28/2021)
  *      - Initial Release
  *
@@ -41,15 +43,13 @@ metadata {
 		capability "Configuration"
 		capability "Refresh"
 		capability "Health Check"
-		attribute "energyDays",  "number"
-		attribute "energyStatus", "string"
 		capability "CurrentMeter"
-		attribute "firmwareVersion", "number"
 
 		attribute "lastCheckin", "string"
 		attribute "history", "string"
 		attribute "energyTime", "number"
 		attribute "energyCost", "string"
+		attribute "energyDays",  "number"
 		attribute "energyDuration", "string"
 
 		["power", "voltage", "amperage"].each {
@@ -69,9 +69,9 @@ metadata {
 		configParams.each {
 			if (it.name) {
 				if (it.range) {
-					input "configParam${it.num}", "number", title: "${it.name}:", required: false, defaultValue: "${it.value}", range: it.range
+					input "configParam${it.num}", "number", title: "${it.name}:", required: false, defaultValue: it.value, range: it.range
 				} else {
-					input "configParam${it.num}", "enum", title: "${it.name}:", required: false, defaultValue: "${it.value}", options: it.options
+					input "configParam${it.num}", "enum", title: "${it.name}:", required: false, defaultValue: it.value, options: it.options
 				}
 			}
 		}
@@ -105,19 +105,19 @@ private getBoolInput(name, title, defaultVal) {
 
 // Meters
 private getMeterEnergy() {
-	return getMeterMap("energy", 0, "kWh", null, settings?.displayEnergy != false)
+	return getMeterMap("energy", 0, "kWh", null, settings?.displayEnergy ?: true)
 }
 
 private getMeterPower() {
-	return getMeterMap("power", 2, "W", 2000, settings?.displayPower != false)
+	return getMeterMap("power", 2, "W", 2000, settings?.displayPower ?: true)
 }
 
 private getMeterVoltage() {
-	return getMeterMap("voltage", 4, "V", 150, settings?.displayVoltage != false)
+	return getMeterMap("voltage", 4, "V", 150, settings?.displayVoltage ?: true)
 }
 
 private getMeterAmperage() {
-	return getMeterMap("amperage", 5, "A", 18, settings?.displayCurrent != false)
+	return getMeterMap("amperage", 5, "A", 18, settings?.displayCurrent ?: true)
 }
 
 private static getMeterMap(name, scale, unit, limit, displayed) {
@@ -134,14 +134,6 @@ def updated() {
 		state.lastUpdated = new Date().time
 
 		logDebug "updated()..."
-
-		if (!state.dthVer23Config) {
-			state.dthVer23Config = true
-			sendEvent(name:"amperage", value: 0, unit: "A", displayed: true, isStateChange: true)
-			sendEvent(name:"energyStatus", value: "tracking", displayed: true, isStateChange: true)
-			sendEvent(name: "energyDays", value: calculateEnergyDays(), displayed: true, isStateChange: true)
-			sendEvent(name: "firmwareVersion", value: roundTwoPlaces(device.currentValue("firmwareVersion")), displayed: true, isStateChange: true)
-		}
 
 		configure()
 	}
@@ -167,14 +159,9 @@ def configure() {
 
 	def cmds = []
 
-	if (!device.currentValue("firmwareVersion")) {
-		cmds << versionGetCmd()
-	}
-
 	configParams.each { param ->
-        logTrace "param: ${param}"
-        def newVal = getParamIntVal(param)
-        def storeVal = getParamStoredIntVal(param)
+        def newVal = safeToInt(param.value)
+		def storeVal = state."configVal${param.num}"
 		if (newVal != storeVal) {
 			logDebug "${param.name}(#${param.num}): changing ${storeVal} to ${newVal}"
 			cmds << secureCmd(zwave.configurationV4.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: newVal))
@@ -182,10 +169,6 @@ def configure() {
 		}
 	}
 	result += cmds ? delayBetween(cmds, 1000) : []
-
-	if (!device.currentValue("energyStatus")) {
-		setEnergyStatusTracking()
-	}
 
 	if (!getAttrVal("energyTime")) {
 		result << "delay 1000"
@@ -200,7 +183,7 @@ def configure() {
 
 private getMinimumReportingInterval() {
 	def minVal = (60 * 60 * 24 * 7)
-	def val = getParamIntVal(powerReportIntervalParam)
+	def val = powerReportIntervalParam.value
 	if (val && val < minVal) {
 		minVal = val
 	}
@@ -240,17 +223,6 @@ def refresh() {
 	]
 	configParams.each { param -> cmds << secureCmd(zwave.configurationV4.configurationGet(parameterNumber: param.num)) }
 	return delayBetween(cmds, 1000)
-}
-
-def setEnergyStatus(value) {
-	logDebug "setEnergyStatus(${value})..."
-	sendEvent(name: "energyStatus", value: "reset")
-	runIn(2, setEnergyStatusTracking)
-	return reset()
-}
-
-def setEnergyStatusTracking() {
-	sendEvent(name: "energyStatus", value: "tracking", displayed: false)
 }
 
 def reset() {
@@ -367,10 +339,9 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 
 def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
 	logTrace "ZWave VersionReport: ${cmd}"
-	def subVersion = String.format("%02d", cmd.applicationSubVersion)
-	def fullVersion = "${cmd.applicationVersion}.${subVersion}".toBigDecimal()
-	if (fullVersion != device.currentValue("firmwareVersion")) {
-		sendEvent(name:"firmwareVersion", value: fullVersion)
+	def fullVersion = "${cmd.firmware0Version}.${cmd.firmware0SubVersion}".toBigDecimal()
+	if (fullVersion != getDataValue("firmwareVersion").toBigDecimal()) {
+		updateDataValue("firmwareVersion", fullVersion)
 	}
 	return []
 }
@@ -441,18 +412,13 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 		sendEvent(createEventMap("energyDuration", calculateEnergyDuration(), false))
 	} else if (meter?.name && getAttrVal("${meter.name}") != val) {
 		result << createEvent(createEventMap(meter.name, val, meter.displayed, null, meter.unit))
-		def highLowNames = []
 		def highName = "${meter.name}High"
-		def lowName = "${meter.name}Low"
 		if (!getAttrVal(highName) || val > getAttrVal(highName)) {
-			highLowNames << highName
+			result << createEvent(createEventMap(highName, val, false, null, meter.unit))
 		}
+		def lowName = "${meter.name}Low"
 		if (!getAttrVal(lowName) || meter.value < getAttrVal(lowName)) {
-			highLowNames << lowName
-		}
-
-		highLowNames.each {
-			result << createEvent(createEventMap("$it", val, false, null, meter.unit))
+			result << createEvent(createEventMap(lowName, val, false, null, meter.unit))
 		}
 	}
 	return result
@@ -480,7 +446,7 @@ private calculateEnergyDuration() {
 		} else if (duration >= 60) {
 			return getFormattedDuration(duration, 60, "Hour")
 		} else {
-			return getFormattedDuration(duration, 0, "Minute")
+			return getFormattedDuration(duration, 1, "Minute")
 		}
 	}
 }
@@ -490,9 +456,7 @@ private getEnergyDurationMinutes() {
 }
 
 private static getFormattedDuration(duration, divisor, name) {
-	if (divisor) {
-		duration = roundTwoPlaces(duration / divisor)
-	}
+	duration = roundTwoPlaces(duration / divisor)
 	return "${duration} ${name}${duration == 1 ? '' : 's'}"
 }
 
@@ -520,35 +484,35 @@ private getLedModeParam() {
 }
 
 private getAutoOffIntervalParam() {
-	return getParam(2, "Auto Turn-Off Timer(0,Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
+	return getParam(2, "Auto Turn-Off Timer(0[DEFAULT],Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
 }
 
 private getAutoOnIntervalParam() {
-	return getParam(3, "Auto Turn-On Timer(0,Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
+	return getParam(3, "Auto Turn-On Timer(0[DEFAULT],Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
 }
 
 private getPowerFailureRecoveryParam() {
-	return getParam(4, "Power Failure Recovery", 1, 0, powerFailureRecoveryOptions)
+	return getParam(4, "Restores state after power failure", 1, 0, powerFailureRecoveryOptions)
 }
 
 private getPowerValueChangeParam() {
-	return getParam(5, "Power Report Value Change(0 - 5:0W - 5w)", 1, 1, null, "0..5")
+	return getParam(5, "Power Wattage(W) Report Value Change (1 [DEFAULT]; 0 - 5:0W - 5w)", 1, 1, null, "0..5")
 }
 
 private getPowerReportIntervalParam() {
-	return getParam(6, "Power Reporting Interval(1 - 65535:1 - 65535 minutes)", 4, 1, null, "1..65535")
+	return getParam(6, "Time Report Interval(1[DEFAULT] - 65535:1 - 65535 minutes)", 4, 1, null, "1..65535")
 }
 
 private getCurrentReportParam() {
-	return getParam(7, "Current Report Value Change(1 - 10:0.1A - 1A)", 1, 1, null, "1..10")
+	return getParam(7, "Current(A) Report Value Change(1[DEFAULT] - 10:0.1A - 1A)", 1, 1, null, "1..10")
 }
 
 private getElectricityReportParam() {
-	return getParam(8, "Electricity Report Value Change(1 - 100:0.01KWH - 1KWH)", 1, 1, null, "1..100")
+	return getParam(8, "Energy(KWH) Report Value Change(1[DEFAULT] - 100:0.01KWH - 1KWH)", 1, 1, null, "1..100")
 }
 
 private getParam(num, name, size, defaultVal, options=null, range=null) {
-	def val = safeToInt((settings ? settings["configParam${num}"] : null), defaultVal)
+	def val = settings?."configParam${num}" ?: defaultVal;
 
 	def map = [num: num, name: name, size: size, value: val]
 	if (options) {
@@ -571,18 +535,18 @@ private static setDefaultOption(options, defaultVal) {
 
 private static getLedModeOptions() {
 	return [
-			"0":"On When On",
-			"1":"Off When On",
-			"2":"Always Off",
-			"3":"Always On"
+			0:"On When On",
+			1:"Off When On",
+			2:"Always Off",
+			3:"Always On"
 	]
 }
 
 private static getPowerFailureRecoveryOptions() {
 	return [
-			"0":"Remember last status",
-			"1":"Turn Off",
-			"2":"Turn On"
+			0:"Remember last status",
+			1:"Turn Off",
+			2:"Turn On"
 	]
 }
 
@@ -605,7 +569,7 @@ private createEventMap(name, value, displayed=null, desc=null, unit=null) {
 	def eventMap = [
 		name: name,
 		value: value,
-		displayed: (displayed == null ? ("${getAttrVal(name)}" != "${value}") : displayed)
+		displayed: (displayed ?: ("${getAttrVal(name)}" != "${value}"))
 	]
 
 	if (unit) {
@@ -626,21 +590,9 @@ private getAttrVal(attrName) {
 	try {
 		return device?.currentValue("${attrName}")
 	} catch (ex) {
-		logTrace "$ex"
+		log.error "$ex"
 		return null
 	}
-}
-
-private static convertOptionSettingToInt(options, settingVal) {
-    return safeToInt(options?.find { key, value -> value == settingVal}.key, 0)
-}
-
-private static getParamIntVal(param) {
-	return param.options ? convertOptionSettingToInt(param.options, param.valueName) : param.value
-}
-
-private getParamStoredIntVal(param) {
-	return safeToInt(state["configVal${param.num}"] , null)
 }
 
 private static safeToInt(val, defaultVal=0) {
@@ -675,5 +627,7 @@ private logDebug(msg) {
 }
 
 private logTrace(msg) {
-	log.trace "$msg"
+	if (debugOutputSetting) {
+		log.trace "$msg"
+	}
 }
