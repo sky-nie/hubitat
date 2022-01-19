@@ -126,7 +126,7 @@ private static getMeterMap(name, scale, unit, limit, displayed) {
 
 def installed() {
 	logDebug "installed()..."
-	return reset()
+	traceZwaveOutput(delayBetweenBatch(doReset()))
 }
 
 def updated() {
@@ -135,14 +135,16 @@ def updated() {
 
 		logDebug "updated()..."
 
-		configure()
+		traceZwaveOutput(delayBetweenBatch(doConfigure()))
 	}
 }
 
 def configure() {
 	logDebug "configure()..."
-	def result = []
+	traceZwaveOutput(delayBetweenBatch(doConfigure()))
+}
 
+private doConfigure() {
 	def minReportingInterval = minimumReportingInterval
 
 	if (state.minReportingInterval != minReportingInterval) {
@@ -168,17 +170,13 @@ def configure() {
 			cmds << secureCmd(zwave.configurationV4.configurationGet(parameterNumber: param.num))
 		}
 	}
-	result += cmds ? delayBetween(cmds, 1000) : []
 
 	if (!getAttrVal("energyTime")) {
-		result << "delay 1000"
-		result += reset()
+		cmds += doReset()
 	} else if (!state.configured) {
-		result << "delay 1000"
-		result += refresh()
+		cmds += doRefresh()
 	}
-	logTrace "sending ${result}"
-	return result
+	return cmds;
 }
 
 private getMinimumReportingInterval() {
@@ -192,27 +190,31 @@ private getMinimumReportingInterval() {
 
 def ping() {
 	logDebug "ping()..."
-	return [switchBinaryGetCmd()]
+	return traceZwaveOutput([switchBinaryGetCmd()])
 }
 
 def on() {
 	logDebug "on()..."
-	return delayBetween([
+	return traceZwaveOutput(delayBetween([
 		switchBinarySetCmd(0xFF),
 		switchBinaryGetCmd()
-	], 500)
+	], 500))
 }
 
 def off() {
 	logDebug "off()..."
-	return delayBetween([
+	return traceZwaveOutput(delayBetween([
 		switchBinarySetCmd(0x00),
 		switchBinaryGetCmd()
-	], 500)
+	], 500))
 }
 
 def refresh() {
 	logDebug "refresh()..."
+	traceZwaveOutput(delayBetweenBatch(doRefresh()))
+}
+
+private doRefresh() {
     cmds = [
 		switchBinaryGetCmd(),
 		meterGetCmd(meterEnergy),
@@ -221,13 +223,18 @@ def refresh() {
 		meterGetCmd(meterAmperage),
 		versionGetCmd()
 	]
-	configParams.each { param -> cmds << secureCmd(zwave.configurationV4.configurationGet(parameterNumber: param.num)) }
-	return delayBetween(cmds, 1000)
+	configParams.each { 
+		param -> cmds << secureCmd(zwave.configurationV4.configurationGet(parameterNumber: param.num))
+	}
+	return cmds
 }
 
 def reset() {
 	logDebug "reset()..."
+	traceZwaveOutput(delayBetweenBatch(doReset()))
+}
 
+private doReset() {
 	["power", "voltage", "amperage"].each {
 		sendEvent(createEventMap("${it}Low", getAttrVal(it), false))
 		sendEvent(createEventMap("${it}High", getAttrVal(it), false))
@@ -235,20 +242,15 @@ def reset() {
 	sendEvent(createEventMap("energyTime", new Date().time, false))
 	sendEvent(createEventMap("energyDays", 0, false))
 
-	def result = [
-		secureCmd(zwave.meterV3.meterReset()),
-		"delay 1000"
-	]
-	result += refresh()
-	return result
+	return [secureCmd(zwave.meterV5.meterReset())] + doRefresh()
 }
 
 private meterGetCmd(meter) {
-	return secureCmd(zwave.meterV3.meterGet(scale: meter.scale))
+	return secureCmd(zwave.meterV5.meterGet(scale: meter.scale))
 }
 
 private versionGetCmd() {
-	return secureCmd(zwave.versionV1.versionGet())
+	return secureCmd(zwave.versionV2.versionGet())
 }
 
 private switchBinaryGetCmd() {
@@ -324,7 +326,7 @@ private static getCommandClassVersions() {
 	]
 }
 
-def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.configurationv4.ConfigurationReport cmd) {
 	logTrace "ZWave ConfigurationReport: ${cmd}"
 	state.configured = true
 	def configParam = configParams.find { param ->
@@ -337,7 +339,7 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	return []
 }
 
-def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.versionv2.VersionReport cmd) {
 	logTrace "ZWave VersionReport: ${cmd}"
 	def fullVersion = "${cmd.firmware0Version}.${cmd.firmware0SubVersion}".toBigDecimal()
 	if (fullVersion != getDataValue("firmwareVersion").toBigDecimal()) {
@@ -367,7 +369,7 @@ private createSwitchEvent(value, type) {
 	return createEvent(map)
 }
 
-def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.meterv5.MeterReport cmd) {
 	logTrace "ZWave MeterReport: $cmd"
 	def result = []
 	def val = roundTwoPlaces(cmd.scaledMeterValue)
@@ -417,7 +419,7 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 			result << createEvent(createEventMap(highName, val, false, null, meter.unit))
 		}
 		def lowName = "${meter.name}Low"
-		if (!getAttrVal(lowName) || meter.value < getAttrVal(lowName)) {
+		if (!getAttrVal(lowName) || val < getAttrVal(lowName)) {
 			result << createEvent(createEventMap(lowName, val, false, null, meter.unit))
 		}
 	}
@@ -620,6 +622,11 @@ private static isDuplicateCommand(lastExecuted, allowedMil) {
 	!lastExecuted ? false : (lastExecuted + allowedMil > new Date().time)
 }
 
+private traceZwaveOutput(cmds) {
+	logTrace("Zwave sending: ${cmds}")
+	return cmds
+}
+
 private logDebug(msg) {
 	if (debugOutputSetting) {
 		log.debug "$msg"
@@ -630,4 +637,15 @@ private logTrace(msg) {
 	if (debugOutputSetting) {
 		log.trace "$msg"
 	}
+}
+
+private delayBetweenBatch(cmds, delay=500, batch=4, pause=3000) {
+	def result = []
+	cmds.eachWithIndex{ cmd, idx ->
+		result << cmd
+		result << "delay ${(idx+1) % batch == 0 ? pause : delay}"
+	}
+	logTrace "===${result.class}===${result}"
+	result.pop() // before groovy 2.5.0
+	return result
 }
