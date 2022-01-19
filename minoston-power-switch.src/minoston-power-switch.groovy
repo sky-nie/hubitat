@@ -135,7 +135,7 @@ def updated() {
 
 		logDebug "updated()..."
 
-		traceZwaveOutput(delayBetweenBatch(doConfigure()))
+		traceZwaveOutput(delayBetweenBatch({doConfigure()}))
 	}
 }
 
