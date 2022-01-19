@@ -42,6 +42,7 @@ metadata {
 		capability "Voltage Measurement"
 		capability "Configuration"
 		capability "Refresh"
+		capability "Health Check"
 		capability "CurrentMeter"
 
 		attribute "lastCheckin", "string"
