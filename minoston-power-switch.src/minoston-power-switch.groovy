@@ -42,7 +42,6 @@ metadata {
 		capability "Voltage Measurement"
 		capability "Configuration"
 		capability "Refresh"
-		capability "Health Check"
 		capability "CurrentMeter"
 
 		attribute "lastCheckin", "string"
@@ -145,20 +144,6 @@ def configure() {
 }
 
 private doConfigure() {
-	def minReportingInterval = minimumReportingInterval
-
-	if (state.minReportingInterval != minReportingInterval) {
-		state.minReportingInterval = minReportingInterval
-
-		// Set the Health Check interval so that it can be skipped twice plus 5 minutes.
-		def checkInterval = ((minReportingInterval * 2) + (5 * 60))
-
-		def eventMap = createEventMap("checkInterval", checkInterval, false)
-		eventMap.data = [protocol: "zwave", hubHardwareId: device.hub.hardwareID]
-
-		sendEvent(eventMap)
-	}
-
 	def cmds = []
 
 	configParams.each { param ->
@@ -177,15 +162,6 @@ private doConfigure() {
 		cmds += doRefresh()
 	}
 	return cmds;
-}
-
-private getMinimumReportingInterval() {
-	def minVal = (60 * 60 * 24 * 7)
-	def val = powerReportIntervalParam.value
-	if (val && val < minVal) {
-		minVal = val
-	}
-	return minVal
 }
 
 def ping() {
@@ -623,7 +599,7 @@ private static isDuplicateCommand(lastExecuted, allowedMil) {
 }
 
 private traceZwaveOutput(cmds) {
-	logTrace("Zwave sending: ${cmds}")
+	logTrace(cmds ? "Zwave sending: ${cmds}" : "Zwave no command to send")
 	return cmds
 }
 
@@ -645,7 +621,6 @@ private delayBetweenBatch(cmds, delay=500, batch=4, pause=3000) {
 		result << cmd
 		result << "delay ${(idx+1) % batch == 0 ? pause : delay}"
 	}
-	logTrace "===${result.class}===${result}"
-	result.pop() // before groovy 2.5.0
+	if (result) result.pop() // before groovy 2.5.0
 	return result
 }
