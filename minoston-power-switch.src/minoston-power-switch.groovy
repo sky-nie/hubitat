@@ -126,7 +126,7 @@ private static getMeterMap(name, scale, unit, limit, displayed) {
 
 def installed() {
 	logDebug "installed()..."
-	traceZwaveOutput(delayBetweenBatch(doReset()))
+	traceZwaveOutput(delayBetweenBatch({doReset()}))
 }
 
 def updated() {
@@ -141,7 +141,7 @@ def updated() {
 
 def configure() {
 	logDebug "configure()..."
-	traceZwaveOutput(delayBetweenBatch(doConfigure()))
+	traceZwaveOutput(delayBetweenBatch({doConfigure()}))
 }
 
 private doConfigure() {
@@ -188,7 +188,7 @@ def off() {
 
 def refresh() {
 	logDebug "refresh()..."
-	traceZwaveOutput(delayBetweenBatch(doRefresh()))
+	traceZwaveOutput(delayBetweenBatch({doRefresh()}))
 }
 
 private doRefresh() {
@@ -208,7 +208,7 @@ private doRefresh() {
 
 def reset() {
 	logDebug "reset()..."
-	traceZwaveOutput(delayBetweenBatch(doReset()))
+	traceZwaveOutput(delayBetweenBatch({doReset()}))
 }
 
 private doReset() {
@@ -616,8 +616,11 @@ private logTrace(msg) {
 	}
 }
 
-private delayBetweenBatch(cmds, delay=500, batch=4, pause=3000) {
+private delayBetweenBatch(Closure getCmds, delay=500, batch=4, pause=3000) {
 	def result = []
+	if (new Date().time < (state.waitUntil?:0)) return result
+	cmds = getCmds()
+	state.waitUntil = new Date().time + cmds.size() * delay + cmds.size().intdiv(batch) * (pause-delay)
 	cmds.eachWithIndex{ cmd, idx ->
 		result << cmd
 		result << "delay ${(idx+1) % batch == 0 ? pause : delay}"
