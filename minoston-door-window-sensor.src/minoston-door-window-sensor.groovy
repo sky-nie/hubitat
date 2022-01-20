@@ -76,7 +76,8 @@ metadata {
 		attribute "lastCheckIn", "string"
 		attribute "pendingChanges", "string"
 
-		fingerprint mfr: "0312", prod: "0713", model: "D100", deviceJoinName: "Minoston 3-in-1 Sensor"//MSE30Z
+		fingerprint mfr: "0312", prod: "0713", deviceId: "D100", deviceJoinName: "Minoston 3-in-1 Sensor", inClusters:"0x5E,0x55,0x9F,0x6C"  //MSE30Z
+		fingerprint mfr: "0312", prod: "0713", deviceId: "D100", deviceJoinName: "Minoston 3-in-1 Sensor", inClusters:"0x86,0x85,0x8E,0x59,0x31,0x72,0x5A,0x87,0x73,0x80,0x71,0x30,0x70,0x84,0x7A"
 	}
 
 	preferences {
