@@ -383,6 +383,7 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
 	return result
 }
 
+
 private createSwitchEvent(value, type) {
 	def eventVal = (value == 0xFF) ? "on" : "off"
 	def map = createEventMap("switch", eventVal, null, "Switch is ${eventVal}")
