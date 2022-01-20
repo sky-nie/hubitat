@@ -103,8 +103,8 @@ metadata {
         attribute "firmwareVersion", "string"
         attribute "lastCheckIn", "string"
 
-        fingerprint model: "D001", mfr: "0312", prod: "0924", deviceJoinName: "Minoston Remote Control Switch", inClusters:"0x5E,0x55,0x9F,0x6C"
-        fingerprint model: "D001", mfr: "0312", prod: "0924", deviceJoinName: "Minoston Remote Control Switch", inClusters:"0x5E,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x73,0x80,0x5B,0x26,0x9F,0x70,0x84,0x6C,0x7A"
+        fingerprint mfr: "0312", prod: "0924", deviceId: "D001", deviceJoinName: "Minoston Remote Control Switch", inClusters:"0x5E,0x55,0x9F,0x6C"
+        fingerprint mfr: "0312", prod: "0924", deviceId: "D001", deviceJoinName: "Minoston Remote Control Switch", inClusters:"0x86,0x85,0x8E,0x59,0x72,0x5A,0x73,0x80,0x5B,0x87,0x70,0x84,0x7A"
     }
 
     preferences {
