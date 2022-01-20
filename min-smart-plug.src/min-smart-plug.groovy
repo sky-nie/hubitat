@@ -87,9 +87,9 @@ metadata {
         attribute "firmwareVersion", "string"
         attribute "syncStatus", "string"
 
-//        fingerprint mfr: "0312", prod: "C000", model: "C009", deviceJoinName: "Minoston Outlet", ocfDeviceType: "oic.d.smartplug" // old MP21Z
-//        fingerprint mfr: "0312", prod: "FF00", model: "FF0C", deviceJoinName: "Minoston Outlet", ocfDeviceType: "oic.d.smartplug" //MP21Z Minoston Mini Smart Plug
-        fingerprint mfr: "0312", prod: "AC01", model: "4001", deviceJoinName: "New One Outlet",  ocfDeviceType: "oic.d.smartplug" // N4001 New One  Mini Smart Plug
+        fingerprint mfr: "0312", prod: "C000", deviceId: "C009", deviceJoinName: "Minoston Outlet", ocfDeviceType: "oic.d.smartplug", inClusters:"0x5E,0x25,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x73,0x70,0x9F,0x6C,0x7A" // old MP21Z
+        fingerprint mfr: "0312", prod: "FF00", deviceId: "FF0C", deviceJoinName: "Minoston Outlet", ocfDeviceType: "oic.d.smartplug", inClusters:"0x5E,0x25,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x73,0x70,0x9F,0x6C,0x7A" //MP21Z Minoston Mini Smart Plug
+        fingerprint mfr: "0312", prod: "AC01", deviceId: "4001", deviceJoinName: "New One Outlet",  ocfDeviceType: "oic.d.smartplug", inClusters:"0x5E,0x25,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x73,0x70,0x9F,0x6C,0x7A" // N4001 New One  Mini Smart Plug
     }
 
     preferences {
