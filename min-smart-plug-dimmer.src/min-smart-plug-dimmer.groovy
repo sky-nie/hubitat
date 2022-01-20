@@ -110,9 +110,12 @@ metadata {
         attribute "lastCheckIn", "string"
         attribute "syncStatus", "string"
 
-        fingerprint mfr: "0312", prod: "FF00", model: "FF0D", deviceJoinName: "Minoston Smart Plug Dimmer", ocfDeviceType: "oic.d.smartplug" //MP21ZD
-        fingerprint mfr: "0312", prod: "FF07", model: "FF03", deviceJoinName: "Minoston Outdoor Dimmer", ocfDeviceType: "oic.d.smartplug" //MP22ZD
-        fingerprint mfr: "0312", prod: "AC01", model: "4002", deviceJoinName: "New One Smart Plug Dimmer",  ocfDeviceType: "oic.d.smartplug" //N4002
+        fingerprint mfr: "0312", prod: "FF00", deviceId: "FF0D", deviceJoinName: "Minoston Smart Plug Dimmer", ocfDeviceType: "oic.d.smartplug", inClusters:"0x5E,0x55,0x9F,0x6C" //MP21ZD
+        fingerprint mfr: "0312", prod: "FF00", deviceId: "FF0D", deviceJoinName: "Minoston Smart Plug Dimmer", ocfDeviceType: "oic.d.smartplug", inClusters:"0x86,0x26,0x70,0x85,0x8E,0x71,0x31,0x59,0x72,0x5A,0x73,0x7A"
+        fingerprint mfr: "0312", prod: "FF07", deviceId: "FF03", deviceJoinName: "Minoston Outdoor Dimmer"   , ocfDeviceType: "oic.d.smartplug", inClusters:"0x5E,0x55,0x9F,0x6C" //MP22ZD
+        fingerprint mfr: "0312", prod: "FF07", deviceId: "FF03", deviceJoinName: "Minoston Outdoor Dimmer"   , ocfDeviceType: "oic.d.smartplug", inClusters:"0x86,0x26,0x70,0x85,0x8E,0x71,0x31,0x59,0x72,0x5A,0x73,0x7A"
+        fingerprint mfr: "0312", prod: "AC01", deviceId: "4002", deviceJoinName: "New One Smart Plug Dimmer" , ocfDeviceType: "oic.d.smartplug", inClusters:"0x5E,0x55,0x9F,0x6C" //N4002
+        fingerprint mfr: "0312", prod: "AC01", deviceId: "4002", deviceJoinName: "New One Smart Plug Dimmer" , ocfDeviceType: "oic.d.smartplug", inClusters:"0x86,0x26,0x70,0x85,0x8E,0x71,0x31,0x59,0x72,0x5A,0x73,0x7A"
     }
 
     preferences {
