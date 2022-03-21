@@ -1,4 +1,18 @@
 {
   "author": "winnie",
-  "gitHubUrl": "https://github.com/sky-nie"
+  "gitHubUrl": "https://github.com/sky-nie",
+  "packages": [
+    {
+      "id": "8a293313-9136-4edb-811d-1d851f502b92",
+      "name": "Package NewOne",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/newone/packageManifest.json",
+      "description": "Package for NewOne",
+      "tags": [
+        "Temperature & Humidity",
+        "Lights & Switches",
+        "Energy Monitoring"
+      ]
+    }
+  ]
 }
