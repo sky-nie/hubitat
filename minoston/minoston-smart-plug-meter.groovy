@@ -1,7 +1,7 @@
 /**
  *  Minoston Smart Plug Meter v1.0.0(HUBITAT)
  *
- *  Models: MP21ZP && MP22ZP
+ *  Models: MP21ZP & MP22ZP
  *
  *  Author:
  *   winnie (sky-nie)
@@ -41,15 +41,13 @@ metadata {
 		capability "Configuration"
 		capability "Refresh"
 		capability "Health Check"
-		attribute "energyDays",  "number"
-		attribute "energyStatus", "string"
 		capability "CurrentMeter"
-		attribute "firmwareVersion", "number"
 
 		attribute "lastCheckin", "string"
 		attribute "history", "string"
 		attribute "energyTime", "number"
 		attribute "energyCost", "string"
+		attribute "energyDays",  "number"
 		attribute "energyDuration", "string"
 
 		["power", "voltage", "amperage"].each {
@@ -59,19 +57,19 @@ metadata {
 
 		command "reset"
 
-		fingerprint mfr: "0312", prod: "FF00", deviceId: "FF0E", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x5E,0x55,0x9F,0x6C"  //Mini Smart Plug Meter, MP21ZP
-		fingerprint mfr: "0312", prod: "FF00", deviceId: "FF0E", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x86,0x25,0x70,0x85,0x8E,0x59,0x32,0x71,0x72,0x5A,0x87,0x73,0x7A"
-		fingerprint mfr: "0312", prod: "FF00", deviceId: "FF0F", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x5E,0x55,0x9F,0x6C"//Mini Smart Plug Meter, MP22ZP
-		fingerprint mfr: "0312", prod: "FF00", deviceId: "FF0F", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x86,0x25,0x70,0x85,0x8E,0x59,0x32,0x71,0x72,0x5A,0x87,0x73,0x7A"
+		fingerprint mfr: "0312", prod: "FF00", model: "FF0E", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x5E,0x55,0x9F,0x6C"  //Mini Smart Plug Meter, MP21ZP
+		fingerprint mfr: "0312", prod: "FF00", model: "FF0E", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x86,0x25,0x70,0x85,0x8E,0x59,0x32,0x71,0x72,0x5A,0x87,0x73,0x7A"
+		fingerprint mfr: "0312", prod: "FF00", model: "FF0F", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x5E,0x55,0x9F,0x6C"//Mini Smart Plug Meter, MP22ZP
+		fingerprint mfr: "0312", prod: "FF00", model: "FF0F", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x86,0x25,0x70,0x85,0x8E,0x59,0x32,0x71,0x72,0x5A,0x87,0x73,0x7A"
 	}
 
 	preferences {
 		configParams.each {
 			if (it.name) {
 				if (it.range) {
-					input "configParam${it.num}", "number", title: "${it.name}:", required: false, defaultValue: "${it.value}", range: it.range
+					input "configParam${it.num}", "number", title: "${it.name}:", required: false, defaultValue: it.value, range: it.range
 				} else {
-					input "configParam${it.num}", "enum", title: "${it.name}:", required: false, defaultValue: "${it.value}", options: it.options
+					input "configParam${it.num}", "enum", title: "${it.name}:", required: false, defaultValue: it.value, options: it.options
 				}
 			}
 		}
@@ -105,19 +103,19 @@ private getBoolInput(name, title, defaultVal) {
 
 // Meters
 private getMeterEnergy() {
-	return getMeterMap("energy", 0, "kWh", null, settings?.displayEnergy != false)
+	return getMeterMap("energy", 0, "kWh", null, settings?.displayEnergy ?: true)
 }
 
 private getMeterPower() {
-	return getMeterMap("power", 2, "W", 2000, settings?.displayPower != false)
+	return getMeterMap("power", 2, "W", 2000, settings?.displayPower ?: true)
 }
 
 private getMeterVoltage() {
-	return getMeterMap("voltage", 4, "V", 150, settings?.displayVoltage != false)
+	return getMeterMap("voltage", 4, "V", 150, settings?.displayVoltage ?: true)
 }
 
 private getMeterAmperage() {
-	return getMeterMap("amperage", 5, "A", 18, settings?.displayCurrent != false)
+	return getMeterMap("amperage", 5, "A", 18, settings?.displayCurrent ?: true)
 }
 
 private static getMeterMap(name, scale, unit, limit, displayed) {
@@ -126,7 +124,7 @@ private static getMeterMap(name, scale, unit, limit, displayed) {
 
 def installed() {
 	logDebug "installed()..."
-	return reset()
+	traceZwaveOutput(delayBetweenBatch({doReset()}))
 }
 
 def updated() {
@@ -135,123 +133,83 @@ def updated() {
 
 		logDebug "updated()..."
 
-		if (!state.dthVer23Config) {
-			state.dthVer23Config = true
-			sendEvent(name:"amperage", value: 0, unit: "A", displayed: true, isStateChange: true)
-			sendEvent(name:"energyStatus", value: "tracking", displayed: true, isStateChange: true)
-			sendEvent(name: "energyDays", value: calculateEnergyDays(), displayed: true, isStateChange: true)
-			sendEvent(name: "firmwareVersion", value: roundTwoPlaces(device.currentValue("firmwareVersion")), displayed: true, isStateChange: true)
-		}
-
-		def cmds = configure()
-		return cmds ? response(cmds) : []
+		traceZwaveOutput(delayBetweenBatch({doConfigure()}))
 	}
 }
 
 def configure() {
 	logDebug "configure()..."
-	def result = []
+	traceZwaveOutput(delayBetweenBatch({doConfigure()}))
+}
 
-	def minReportingInterval = minimumReportingInterval
-
-	if (state.minReportingInterval != minReportingInterval) {
-		state.minReportingInterval = minReportingInterval
-
-		// Set the Health Check interval so that it can be skipped twice plus 5 minutes.
-		def checkInterval = ((minReportingInterval * 2) + (5 * 60))
-
-		def eventMap = createEventMap("checkInterval", checkInterval, false)
-		eventMap.data = [protocol: "zwave", hubHardwareId: device.hub.hardwareID]
-
-		sendEvent(eventMap)
-	}
-
+private doConfigure() {
 	def cmds = []
 
-	if (!device.currentValue("firmwareVersion")) {
-		cmds << versionGetCmd()
-	}
-
 	configParams.each { param ->
-		if (getParamIntVal(param) != getParamStoredIntVal(param)) {
-			def newVal = getParamIntVal(param)
-			logDebug "${param.name}(#${param.num}): changing ${getParamStoredIntVal(param)} to ${newVal}"
-			cmds << secureCmd(zwave.configurationV2.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: newVal))
-			cmds << secureCmd(zwave.configurationV2.configurationGet(parameterNumber: param.num))
+        def newVal = safeToInt(param.value)
+		def storeVal = state."configVal${param.num}"
+		if (newVal != storeVal) {
+			logDebug "${param.name}(#${param.num}): changing ${storeVal} to ${newVal}"
+			cmds << secureCmd(zwave.configurationV4.configurationSet(parameterNumber: param.num, size: param.size, scaledConfigurationValue: newVal))
+			cmds << secureCmd(zwave.configurationV4.configurationGet(parameterNumber: param.num))
 		}
-	}
-	result += cmds ? delayBetween(cmds, 1000) : []
-
-	if (!device.currentValue("energyStatus")) {
-		setEnergyStatusTracking()
 	}
 
 	if (!getAttrVal("energyTime")) {
-		result << "delay 1000"
-		result += reset()
+		cmds += doReset()
 	} else if (!state.configured) {
-		result << "delay 1000"
-		result += refresh()
+		cmds += doRefresh()
 	}
-	return result
-}
-
-private getMinimumReportingInterval() {
-	def minVal = (60 * 60 * 24 * 7)
-	def val = getParamIntVal(powerReportIntervalParam)
-	if (val && val < minVal) {
-		minVal = val
-	}
-	return minVal
+	return cmds;
 }
 
 def ping() {
 	logDebug "ping()..."
-	return [switchBinaryGetCmd()]
+	return traceZwaveOutput([switchBinaryGetCmd()])
 }
 
 def on() {
 	logDebug "on()..."
-	return delayBetween([
+	return traceZwaveOutput(delayBetween([
 		switchBinarySetCmd(0xFF),
 		switchBinaryGetCmd()
-	], 500)
+	], 500))
 }
 
 def off() {
 	logDebug "off()..."
-	return delayBetween([
+	return traceZwaveOutput(delayBetween([
 		switchBinarySetCmd(0x00),
 		switchBinaryGetCmd()
-	], 500)
+	], 500))
 }
 
 def refresh() {
 	logDebug "refresh()..."
-	return delayBetween([
+	traceZwaveOutput(delayBetweenBatch({doRefresh()}))
+}
+
+private doRefresh() {
+    cmds = [
 		switchBinaryGetCmd(),
 		meterGetCmd(meterEnergy),
 		meterGetCmd(meterPower),
 		meterGetCmd(meterVoltage),
 		meterGetCmd(meterAmperage),
 		versionGetCmd()
-	], 1000)
-}
-
-def setEnergyStatus(value) {
-	logDebug "setEnergyStatus(${value})..."
-	sendEvent(name: "energyStatus", value: "reset")
-	runIn(2, setEnergyStatusTracking)
-	return reset()
-}
-
-def setEnergyStatusTracking() {
-	sendEvent(name: "energyStatus", value: "tracking", displayed: false)
+	]
+	configParams.each { 
+		param -> cmds << secureCmd(zwave.configurationV4.configurationGet(parameterNumber: param.num))
+	}
+	return cmds
 }
 
 def reset() {
 	logDebug "reset()..."
+	traceZwaveOutput(delayBetweenBatch({doReset()}))
+}
 
+private doReset() {
 	["power", "voltage", "amperage"].each {
 		sendEvent(createEventMap("${it}Low", getAttrVal(it), false))
 		sendEvent(createEventMap("${it}High", getAttrVal(it), false))
@@ -259,20 +217,15 @@ def reset() {
 	sendEvent(createEventMap("energyTime", new Date().time, false))
 	sendEvent(createEventMap("energyDays", 0, false))
 
-	def result = [
-		secureCmd(zwave.meterV3.meterReset()),
-		"delay 1000"
-	]
-	result += refresh()
-	return result
+	return [secureCmd(zwave.meterV5.meterReset())] + doRefresh()
 }
 
 private meterGetCmd(meter) {
-	return secureCmd(zwave.meterV3.meterGet(scale: meter.scale))
+	return secureCmd(zwave.meterV5.meterGet(scale: meter.scale))
 }
 
 private versionGetCmd() {
-	return secureCmd(zwave.versionV1.versionGet())
+	return secureCmd(zwave.versionV2.versionGet())
 }
 
 private switchBinaryGetCmd() {
@@ -326,29 +279,30 @@ def zwaveEvent(hubitat.zwave.commands.securityv1.SecurityMessageEncapsulation cm
 private static getCommandClassVersions() {
 	[
 		0x20: 1,	// Basic                       //BasicReport
-		0x25: 1,	// Switch Binary               //SwitchBinaryReport
+		0x25: 2,	// Switch Binary               //SwitchBinaryReport
 		0x27: 1,	// All Switch
-		0x2B: 1,	// Scene Activation
-		0x2C: 1,	// Scene Actuator Configuration//SceneActivationSet             //DTH unimplemented interface
-		0x32: 3,	// Meter v4                    //MeterReport
-		0x55: 1,	// Transport Service
-		0x59: 1,	// AssociationGrpInfo          //AssociationGroupInfoReport     //DTH unimplemented interface
+		0x32: 5,	// Meter V5                    //MeterReport
+		0x55: 2,	// Transport Service
+		0x59: 3,	// AssociationGrpInfo          //AssociationGroupInfoReport     //DTH unimplemented interface
 		0x5A: 1,	// DeviceResetLocally          //DeviceResetLocallyNotification //DTH unimplemented interface
 		0x5E: 2,	// ZwaveplusInfo
 		0x6C: 1,	// Supervision
-		0x71: 3,	// NOTIFICATION_V8             //NotificationReport             //DTH unimplemented interface
-		0x70: 2,	// Configuration               //ConfigurationReport
+		0x70: 4,	// Configuration               //ConfigurationReport
+		0x71: 8,	// Notification V8             //NotificationReport             //DTH unimplemented interface
 		0x72: 2,	// ManufacturerSpecific        //ManufacturerSpecificReport     //DTH unimplemented interface
 		0x73: 1,	// Powerlevel
-		0x7A: 2,	// Firmware Update Md (3)      //FirmwareMdReport               //DTH unimplemented interface
-		0x85: 2,	// Association                 //AssociationReport              //DTH unimplemented interface
-		0x86: 1,	// Version (2)                 //VersionReport
-		0x8E: 2,	// Multi Channel Association   //MultiChannelAssociationReport  //DTH unimplemented interface
-		0x98: 1		// Security 0                  //SecurityMessageEncapsulation
+		0x7A: 5,	// Firmware Update Md V5       //FirmwareMdReport               //DTH unimplemented interface
+		0x85: 3,	// Association                 //AssociationReport              //DTH unimplemented interface
+		0x86: 2,	// Version V2                  //VersionReport
+		0x87: 3,	// Indicator V3
+		0x8E: 4,	// Multi Channel Association   //MultiChannelAssociationReport  //DTH unimplemented interface
+		0x98: 1,	// Security 0                  //SecurityMessageEncapsulation
+		0x9F: 2 	// Security 2
 	]
 }
 
-def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
+def zwaveEvent(hubitat.zwave.commands.configurationv4.ConfigurationReport cmd) {
+	logTrace "ZWave ConfigurationReport: ${cmd}"
 	state.configured = true
 	def configParam = configParams.find { param ->
 		param.num == cmd.parameterNumber
@@ -360,39 +314,27 @@ def zwaveEvent(hubitat.zwave.commands.configurationv2.ConfigurationReport cmd) {
 	return []
 }
 
-def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
-	logTrace "VersionReport: ${cmd}"
-	def subVersion = String.format("%02d", cmd.applicationSubVersion)
-	def fullVersion = "${cmd.applicationVersion}.${subVersion}".toBigDecimal()
-	if (fullVersion != device.currentValue("firmwareVersion")) {
-		sendEvent(name:"firmwareVersion", value: fullVersion)
+def zwaveEvent(hubitat.zwave.commands.versionv2.VersionReport cmd) {
+	logTrace "ZWave VersionReport: ${cmd}"
+	def fullVersion = "${cmd.firmware0Version}.${cmd.firmware0SubVersion}".toBigDecimal()
+	if (fullVersion != getDataValue("firmwareVersion").toBigDecimal()) {
+		updateDataValue("firmwareVersion", fullVersion)
 	}
 	return []
 }
 
 def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd) {
-	logTrace "SwitchBinaryReport: ${cmd}"
+	logTrace "ZWave SwitchBinaryReport: ${cmd}"
 	def result = []
 	result << createSwitchEvent(cmd.value, "digital")
 	return result
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
-	logTrace "BasicReport: ${cmd}"
+	logTrace "ZWave BasicReport: ${cmd}"
 	def result = []
 	result << createSwitchEvent(cmd.value, "physical")
 	return result
-}
-
-def zwaveEvent(hubitat.zwave.commands.supervisionv1.SupervisionGet cmd){
-	hubitat.zwave.Command encapsulatedCommand = cmd.encapsulatedCommand(commandClassVersions)
-	if (encapsulatedCommand) {
-		zwaveEvent(encapsulatedCommand)
-	}
-	else {
-		log.warn("Unable to extract encapsulated cmd from ${cmd}")
-	}
-	sendHubCommand(new hubitat.device.HubAction(zwaveSecureEncap(zwave.supervisionV1.supervisionReport(sessionID: cmd.sessionID, reserved: 0, moreStatusUpdates: false, status: 0xFF, duration: 0)), hubitat.device.Protocol.ZWAVE))
 }
 
 private createSwitchEvent(value, type) {
@@ -402,8 +344,8 @@ private createSwitchEvent(value, type) {
 	return createEvent(map)
 }
 
-def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
-	logTrace "MeterReport: $cmd"
+def zwaveEvent(hubitat.zwave.commands.meterv5.MeterReport cmd) {
+	logTrace "ZWave MeterReport: $cmd"
 	def result = []
 	def val = roundTwoPlaces(cmd.scaledMeterValue)
 
@@ -447,18 +389,13 @@ def zwaveEvent(hubitat.zwave.commands.meterv3.MeterReport cmd) {
 		sendEvent(createEventMap("energyDuration", calculateEnergyDuration(), false))
 	} else if (meter?.name && getAttrVal("${meter.name}") != val) {
 		result << createEvent(createEventMap(meter.name, val, meter.displayed, null, meter.unit))
-		def highLowNames = []
 		def highName = "${meter.name}High"
-		def lowName = "${meter.name}Low"
 		if (!getAttrVal(highName) || val > getAttrVal(highName)) {
-			highLowNames << highName
+			result << createEvent(createEventMap(highName, val, false, null, meter.unit))
 		}
-		if (!getAttrVal(lowName) || meter.value < getAttrVal(lowName)) {
-			highLowNames << lowName
-		}
-
-		highLowNames.each {
-			result << createEvent(createEventMap("$it", val, false, null, meter.unit))
+		def lowName = "${meter.name}Low"
+		if (!getAttrVal(lowName) || val < getAttrVal(lowName)) {
+			result << createEvent(createEventMap(lowName, val, false, null, meter.unit))
 		}
 	}
 	return result
@@ -486,7 +423,7 @@ private calculateEnergyDuration() {
 		} else if (duration >= 60) {
 			return getFormattedDuration(duration, 60, "Hour")
 		} else {
-			return getFormattedDuration(duration, 0, "Minute")
+			return getFormattedDuration(duration, 1, "Minute")
 		}
 	}
 }
@@ -496,9 +433,7 @@ private getEnergyDurationMinutes() {
 }
 
 private static getFormattedDuration(duration, divisor, name) {
-	if (divisor) {
-		duration = roundTwoPlaces(duration / divisor)
-	}
+	duration = roundTwoPlaces(duration / divisor)
 	return "${duration} ${name}${duration == 1 ? '' : 's'}"
 }
 
@@ -526,35 +461,35 @@ private getLedModeParam() {
 }
 
 private getAutoOffIntervalParam() {
-	return getParam(2, "Auto Turn-Off Timer(0,Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
+	return getParam(2, "Auto Turn-Off Timer(0[DEFAULT],Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
 }
 
 private getAutoOnIntervalParam() {
-	return getParam(3, "Auto Turn-On Timer(0,Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
+	return getParam(3, "Auto Turn-On Timer(0[DEFAULT],Disabled; 1 - 65535 minutes)", 4, 0, null, "0..65535")
 }
 
 private getPowerFailureRecoveryParam() {
-	return getParam(4, "Power Failure Recovery", 1, 0, powerFailureRecoveryOptions)
+	return getParam(4, "Restores state after power failure", 1, 0, powerFailureRecoveryOptions)
 }
 
 private getPowerValueChangeParam() {
-	return getParam(5, "Power Report Value Change(0 - 5:0W - 5w)", 1, 1, null, "0..5")
+	return getParam(5, "Power Wattage(W) Report Value Change (1 [DEFAULT]; 0 - 5:0W - 5w)", 1, 1, null, "0..5")
 }
 
 private getPowerReportIntervalParam() {
-	return getParam(6, "Power Reporting Interval(1 - 65535:1 - 65535 minutes)", 4, 1, null, "1..65535")
+	return getParam(6, "Time Report Interval(1[DEFAULT] - 65535:1 - 65535 minutes)", 4, 1, null, "1..65535")
 }
 
 private getCurrentReportParam() {
-	return getParam(7, "Current Report Value Change(1 - 10:0.1A - 1A)", 1, 1, null, "1..10")
+	return getParam(7, "Current(A) Report Value Change(1[DEFAULT] - 10:0.1A - 1A)", 1, 1, null, "1..10")
 }
 
 private getElectricityReportParam() {
-	return getParam(8, "Electricity Report Value Change(1 - 100:0.01KWH - 1KWH)", 1, 1, null, "1..100")
+	return getParam(8, "Energy(KWH) Report Value Change(1[DEFAULT] - 100:0.01KWH - 1KWH)", 1, 1, null, "1..100")
 }
 
 private getParam(num, name, size, defaultVal, options=null, range=null) {
-	def val = safeToInt((settings ? settings["configParam${num}"] : null), defaultVal)
+	def val = settings?."configParam${num}" ?: defaultVal;
 
 	def map = [num: num, name: name, size: size, value: val]
 	if (options) {
@@ -569,28 +504,26 @@ private getParam(num, name, size, defaultVal, options=null, range=null) {
 }
 
 private static setDefaultOption(options, defaultVal) {
-	return options?.collect { k, v ->
-		if ("${k}" == "${defaultVal}") {
-			v = "${v} [DEFAULT]"
-		}
-		["$k": "$v"]
-	}
+    if (options != null  && options.containsKey(defaultVal)) {
+        options[defaultVal] = options[defaultVal] + " [DEFAULT]"
+    }
+	return options;
 }
 
 private static getLedModeOptions() {
 	return [
-			"0":"On When On",
-			"1":"Off When On",
-			"2":"Always Off",
-			"3":"Always On"
+			0:"On When On",
+			1:"Off When On",
+			2:"Always Off",
+			3:"Always On"
 	]
 }
 
 private static getPowerFailureRecoveryOptions() {
 	return [
-			"0":"Remember last status",
-			"1":"Turn Off",
-			"2":"Turn On"
+			0:"Remember last status",
+			1:"Turn Off",
+			2:"Turn On"
 	]
 }
 
@@ -613,7 +546,7 @@ private createEventMap(name, value, displayed=null, desc=null, unit=null) {
 	def eventMap = [
 		name: name,
 		value: value,
-		displayed: (displayed == null ? ("${getAttrVal(name)}" != "${value}") : displayed)
+		displayed: (displayed ?: ("${getAttrVal(name)}" != "${value}"))
 	]
 
 	if (unit) {
@@ -634,21 +567,9 @@ private getAttrVal(attrName) {
 	try {
 		return device?.currentValue("${attrName}")
 	} catch (ex) {
-		logTrace "$ex"
+		log.error "$ex"
 		return null
 	}
-}
-
-private static convertOptionSettingToInt(options, settingVal) {
-	return safeToInt(options?.find { name, val -> "${settingVal}" == name }?.value, 0)
-}
-
-private static getParamIntVal(param) {
-	return param.options ? convertOptionSettingToInt(param.options, param.val) : param.val
-}
-
-private getParamStoredIntVal(param) {
-	return safeToInt(state["configVal${param.num}"] , null)
 }
 
 private static safeToInt(val, defaultVal=0) {
@@ -676,6 +597,11 @@ private static isDuplicateCommand(lastExecuted, allowedMil) {
 	!lastExecuted ? false : (lastExecuted + allowedMil > new Date().time)
 }
 
+private traceZwaveOutput(cmds) {
+	logTrace(cmds ? "Zwave sending: ${cmds}" : "Zwave no command to send")
+	return cmds
+}
+
 private logDebug(msg) {
 	if (debugOutputSetting) {
 		log.debug "$msg"
@@ -683,5 +609,20 @@ private logDebug(msg) {
 }
 
 private logTrace(msg) {
-	log.trace "$msg"
+	if (debugOutputSetting) {
+		log.trace "$msg"
+	}
+}
+
+private delayBetweenBatch(Closure getCmds, delay=500, batch=4, pause=3000) {
+	def result = []
+	if (new Date().time < (state.waitUntil?:0)) return result
+	cmds = getCmds()
+	state.waitUntil = new Date().time + cmds.size() * delay + cmds.size().intdiv(batch) * (pause-delay)
+	cmds.eachWithIndex{ cmd, idx ->
+		result << cmd
+		result << "delay ${(idx+1) % batch == 0 ? pause : delay}"
+	}
+	if (result) result.pop() // before groovy 2.5.0
+	return result
 }
