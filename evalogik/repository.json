@@ -1,4 +1,16 @@
 {
   "author": "winnie",
-  "gitHubUrl": "https://github.com/sky-nie"
+  "gitHubUrl": "https://github.com/sky-nie",
+  "packages": [
+    {
+      "id": "d11ec74f-df79-47de-aa08-64758a5ce7de",
+      "name": "Package Evalogik",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/packageManifest.json",
+      "description": "Package for Evalogik",
+      "tags": [
+        "Lights & Switches"
+      ]
+    }
+  ]
 }
