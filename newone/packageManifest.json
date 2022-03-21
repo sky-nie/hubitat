@@ -1,0 +1,30 @@
+{
+  "packageName": "Package NewOne",
+  "author": "winnie",
+  "version": "1.0",
+  "minimumHEVersion": "2.1.9",
+  "dateReleased": "2022-03-21",
+  "drivers": [
+    {
+      "id": "b52ea8ba-f2b7-44fa-b635-c3c570bcafd4",
+      "name": "NewOne Mini Smart Plug(N4001)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/newone/newone-mini-smart-plug.groovy",
+      "required": false
+    },
+    {
+      "id": "ce56b59b-afd3-4550-a014-b61ed972d6cb",
+      "name": "NewOne Power Meter Plug(N4003)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/newone/newone-power-meter-plug.groovy",
+      "required": false
+    },
+    {
+      "id": "b1741784-b81b-4cb9-a86a-b602b79fc05f",
+      "name": "NewOne Smart Plug Dimmer(N4002)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/newone/newone-smart-plug-dimmer.groovy",
+      "required": false
+    }
+  ]
+}
