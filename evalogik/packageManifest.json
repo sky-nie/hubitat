@@ -1,0 +1,51 @@
+{
+  "packageName": "Package Evalogik",
+  "author": "winnie",
+  "version": "1.0",
+  "minimumHEVersion": "2.1.9",
+  "dateReleased": "2022-03-21",
+  "drivers": [
+    {
+      "id": "a4768ba7-88a9-491d-9dd0-faa22db6e58c",
+      "name": "Evalogik Mini Outdoor Smart Plug(ZW96S)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-mini-outdoor-smart-plug.groovy",
+      "required": false
+    },
+    {
+      "id": "43edb986-f697-47b7-b5d5-1b91fa5cb8ec",
+      "name": "Evalogik Smart Dimmer Switch(ZW31S)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-smart-dimmer-switch.groovy",
+      "required": false
+    },
+    {
+      "id": "e24ffc53-acfe-4708-b4b3-bdb898ed2a0d",
+      "name": "Evalogik Smart on/off Switch(ZW30S)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-smart-on-off-switch.groovy",
+      "required": false
+    },
+    {
+      "id": "babbafe9-1d21-4eea-99bd-422a748bbf14",
+      "name": "Evalogik Smart on/off Toggle Switch(ZW30TS)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-smart-on-off-toggle-switch.groovy",
+      "required": false
+    },
+    {
+      "id": "ca61785e-f498-42d6-85b6-3b33033feaa1",
+      "name": "Evalogik Smart Switch(ZW30)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-smart-switch.groovy",
+      "required": false
+    },
+    {
+      "id": "f2fa6d11-0ad0-49d5-99c4-f4cd878e0f34",
+      "name": "Evalogik Smart Toggle Dimmer Switch(ZW31TS)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-smart-toggle-dimmer-switch.groovy",
+      "required": false
+    }
+  ]
+}
