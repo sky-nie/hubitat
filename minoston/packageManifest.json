@@ -1,0 +1,93 @@
+{
+  "packageName": "Package Minoston",
+  "author": "winnie",
+  "version": "1.0",
+  "minimumHEVersion": "2.1.9",
+  "dateReleased": "2022-03-21",
+  "drivers": [
+    {
+      "id": "3c709ef4-29c8-4721-aeb5-568e71b8f3a7",
+      "name": "Minoston 3-in-1 Sensor(MSE30Z)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-3-in-1-sensor.groovy",
+      "required": false
+    },
+    {
+      "id": "206e78b3-9555-4f8b-8b11-e6f24b613a6b",
+      "name": "Minoston Mini Outdoor Smart Plug(MP22Z)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-mini-outdoor-smart-plug.groovy",
+      "required": false
+    },
+    {
+      "id": "f1279252-4c43-4c91-a7b0-e302b00aeab5",
+      "name": "Minoston Mini Smart Plug(MP21Z)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-mini-smart-plug.groovy",
+      "required": false
+    },
+    {
+      "id": "74873559-2877-412d-83ac-513f1784701d",
+      "name": "Minoston Outdoor Dimmer(MP22ZD)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-outdoor-dimmer.groovy",
+      "required": false
+    },
+    {
+      "id": "9bd027ea-b092-4d6f-ae90-b4804f96c00b",
+      "name": "Minoston Power Meter Plug(ZW38M)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-power-meter-plug.groovy",
+      "required": false
+    },
+    {
+      "id": "51005915-955a-4687-9cbb-e4fb7c4a967a",
+      "name": "Minoston Smart Dimmer Switch(MS11ZS)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-smart-dimmer-switch.groovy",
+      "required": false
+    },
+    {
+      "id": "b0871706-b0e8-41b0-a7a6-2c4d5ba0fae2",
+      "name": "Minoston Smart on/off Toggle Switch(MS12ZS)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-smart-on-off-toggle-switch.groovy",
+      "required": false
+    },
+    {
+      "id": "04f27546-7c73-40ab-ae24-cc14c7909605",
+      "name": "Minoston Smart Plug Dimmer(MP21ZD)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-smart-plug-dimmer.groovy",
+      "required": false
+    },
+    {
+      "id": "806bb3d0-ef0f-496c-bba8-03f4e71db7b9",
+      "name": "Minoston Smart Plug Meter(MP21ZP && MP22ZP)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-smart-plug-meter.groovy",
+      "required": false
+    },
+    {
+      "id": "8a714477-af1d-46dc-8611-74f7718e6912",
+      "name": "Minoston Smart Switch(MS10ZS)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-smart-switch.groovy",
+      "required": false
+    },
+    {
+      "id": "d6a81cd7-fcb5-44ec-a36d-ddc3ff0a1280",
+      "name": "Minoston Smart Toggle Dimmer Switch(MS13ZS)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-smart-toggle-dimmer-switch.groovy",
+      "required": false
+    },
+    {
+      "id": "a90836a0-9a15-4ff3-826e-5fcdc0f8adc3",
+      "name": "Minoston Wallmote(MR40Z)",
+      "namespace": "sky-nie",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-wallmote.groovy",
+      "required": false
+    }
+  ]
+}
