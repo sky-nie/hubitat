@@ -3,13 +3,35 @@
   "gitHubUrl": "https://github.com/sky-nie",
   "packages": [
     {
-      "id": "856a2f91-c0d1-4565-9442-0dcfad2cd125",
-      "name": "Package Minoston/Evalogic/NewOne",
+      "id": "d11ec74f-df79-47de-aa08-64758a5ce7de",
+      "name": "Package Evalogik",
       "category": "Integrations",
-      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/packageManifest.json",
-      "description": "Package for Minoston/Evalogic/NewOne",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/packageManifest.json",
+      "description": "Package for Evalogik",
+      "tags": [
+        "Lights & Switches"
+      ]
+    },
+    {
+      "id": "4b99cbf4-58b9-42dd-9177-e4a751717b81",
+      "name": "Package Minoston",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/packageManifest.json",
+      "description": "Package for Minoston",
       "tags": [
         "Doors & Windows",
+        "Temperature & Humidity",
+        "Lights & Switches",
+        "Energy Monitoring"
+      ]
+    },
+    {
+      "id": "8a293313-9136-4edb-811d-1d851f502b92",
+      "name": "Package NewOne",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/newone/packageManifest.json",
+      "description": "Package for NewOne",
+      "tags": [
         "Temperature & Humidity",
         "Lights & Switches",
         "Energy Monitoring"
