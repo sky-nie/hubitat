@@ -46,6 +46,13 @@
       "namespace": "sky-nie",
       "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-smart-toggle-dimmer-switch.groovy",
       "required": false
+    },
+    {
+      "id": "2138b7d8-77f3-46e0-b287-ada8e14a8bc8",
+      "name": "Outdoor Smart Plug 2-Channel ZW97",
+      "namespace": "Evalogik",
+      "location": "https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-outdoor-smart-plug.groovy",
+      "required": false
     }
   ]
 }
