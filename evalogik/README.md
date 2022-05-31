@@ -26,4 +26,7 @@ hpm manifest-add-driver packageManifest.json --location=https://raw.githubuserco
 <br>
 hpm manifest-add-driver packageManifest.json --location=https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-smart-toggle-dimmer-switch.groovy --required=false
 <br>
+<br>
+hpm manifest-add-driver packageManifest.json --location=https://raw.githubusercontent.com/sky-nie/hubitat/main/evalogik/evalogik-outdoor-smart-plug.groovy --required=false
+<br>
 <hr />
