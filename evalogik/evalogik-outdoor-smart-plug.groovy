@@ -19,7 +19,7 @@
  *  2018-05-02: Added support for Z-Wave Association Tool SmartApp. Associations require firmware 1.02+.
  *
  */
- 
+import java.util.concurrent.*
 metadata {
     definition(
         name: "Outdoor Smart Plug 2-Channel ZW97", 
@@ -35,14 +35,14 @@ metadata {
         capability "Health Check"
         capability "PushableButton"
         capability "Configuration"
-        
+
         attribute "lastActivity", "String"
         attribute "lastEvent", "String"
-        
-        command "setAssociationGroup", [[name: "Group Number*",type:"NUMBER", description: "Provide the association group number to edit"], 
-                                        [name: "Z-Wave Node*", type:"STRING", description: "Enter the node number (in hex) associated with the node"], 
+
+        command "setAssociationGroup", [[name: "Group Number*",type:"NUMBER", description: "Provide the association group number to edit"],
+                                        [name: "Z-Wave Node*", type:"STRING", description: "Enter the node number (in hex) associated with the node"],
                                         [name: "Action*", type:"ENUM", constraints: ["Add", "Remove"]],
-                                        [name:"Multi-channel Endpoint", type:"NUMBER", description: "Currently not implemented"]] 
+                                        [name:"Multi-channel Endpoint", type:"NUMBER", description: "Currently not implemented"]]
 
         command "childOn"
         command "childOff"
@@ -63,7 +63,7 @@ metadata {
         input "ledIndicator", "enum", title: "LED Indicator\n\nTurn LED indicator on when switch is:\n", description: "Tap to set", required: false, options:[["0": "On"], ["1": "Off"], ["2": "Disable"]], defaultValue: "0"
         input description: "Use the \"Z-Wave Association Tool\" SmartApp to set device associations. (Firmware 1.02+)\n\nGroup 2: Sends on/off commands to associated devices when switch is pressed (BASIC_SET).", title: "Associations", displayDuringSetup: false, type: "paragraph", element: "paragraph"
     }
-    
+
     tiles {
         multiAttributeTile(name: "switch", type: "lighting", width: 6, height: 4, canChangeIcon: true) {
             tileAttribute("device.switch", key: "PRIMARY_CONTROL") {
@@ -73,32 +73,56 @@ metadata {
                 attributeState "turningOn", label: '${name}', action: "switch.off", icon: "st.switches.switch.on", backgroundColor: "#00a0dc", nextState: "turningOff"
             }
         }
-        
+
         standardTile("refresh", "device.switch", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
             state "default", label: "", action: "refresh.refresh", icon: "st.secondary.refresh"
         }
-        
+
         valueTile("lastActivity", "device.lastActivity", inactiveLabel: false, decoration: "flat", width: 4, height: 1) {
             state "default", label: 'Last Activity: ${currentValue}',icon: "st.Health & Wellness.health9"
         }
-        
+
         valueTile("icon", "device.icon", inactiveLabel: false, decoration: "flat", width: 4, height: 1) {
             state "default", label: '', icon: "https://inovelli.com/wp-content/uploads/Device-Handler/Inovelli-Device-Handler-Logo.png"
         }
     }
 }
 
-private getCommandClassVersions() {
-	[
-     0x20: 1, // Basic
-     0x25: 1, // Switch Binary
-     0x70: 2, // Configuration
-     0x60: 3, // Multi Channel
-     0x8E: 2, // Multi Channel Association
-     0x72: 2, // Manufacturer Specific
-     0x85: 2, // Association
-     0x86: 1, // Version
+private static getCommandClassVersions() {
+    [
+            0x20: 1, // Basic
+            0x25: 1, // Switch Binary
+            0x70: 2, // Configuration
+            0x60: 3, // Multi Channel
+            0x8E: 2, // Multi Channel Association
+            0x72: 2, // Manufacturer Specific
+            0x85: 2, // Association
+            0x86: 1, // Version
     ]
+}
+
+com.hubitat.app.DeviceWrapper getTargetDeviceByEndPoint(ep = null ) {
+    if (ep) {
+        return getChildDevices().find{ (it.deviceNetworkId.split("-ep")[-1] as Integer) == (ep as Integer)}
+    } else {
+        return device
+    }
+}
+
+String secure(String cmd, ep = null ){
+    if (ep) {
+        return zwaveSecureEncap(zwave.multiChannelV4.multiChannelCmdEncap(sourceEndPoint: 0, bitAddress: 0, res01:0, destinationEndPoint: ep).encapsulate(cmd))
+    } else {
+        return zwaveSecureEncap(cmd)
+    }
+}
+
+String secure(hubitat.zwave.Command cmd, ep = null ){
+    if (ep) {
+        return zwaveSecureEncap(zwave.multiChannelV4.multiChannelCmdEncap(sourceEndPoint: 0, bitAddress: 0, res01:0, destinationEndPoint: ep).encapsulate(cmd))
+    } else {
+        return zwaveSecureEncap(cmd)
+    }
 }
 
 def parse(String description) {
@@ -110,14 +134,14 @@ def parse(String description) {
     } else {
         log.debug "Non-parsed event: ${description}"
     }
-    
+
     def now
     if(location.timeZone)
-    now = new Date().format("yyyy MMM dd EEE h:mm:ss a", location.timeZone)
+        now = new Date().format("yyyy MMM dd EEE h:mm:ss a", location.timeZone)
     else
-    now = new Date().format("yyyy MMM dd EEE h:mm:ss a")
+        now = new Date().format("yyyy MMM dd EEE h:mm:ss a")
     sendEvent(name: "lastActivity", value: now, displayed:false)
-    
+
     return result
 }
 
@@ -128,10 +152,10 @@ def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd, ep = null) {
         childDevices.each {
             childDevice ->
                 if (childDevice.deviceNetworkId == "$device.deviceNetworkId-ep$ep") {
-                    childDevice.sendEvent(name: "switch", value: cmd.value ? "on" : "off")
+                    childDevice.sendEvent(name: "switch", value: cmd.value == 0xFF ? "on" : "off")
                 }
         }
-        if (cmd.value) {
+        if (cmd.value == 0xFF) {
             event = [createEvent([name: "switch", value: "on"])]
         } else {
             def allOff = true
@@ -156,8 +180,11 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd, ep 
         def childDevice = childDevices.find {
             it.deviceNetworkId == "$device.deviceNetworkId-ep$ep"
         }
-        if (childDevice) childDevice.sendEvent(name: "switch", value: cmd.value ? "on" : "off")
-        if (cmd.value) {
+        if (childDevice) {
+            childDevice.sendEvent(name: "switch", value: cmd.value == 0xFF ? "on" : "off")
+        }
+        sendEvent(name: "ep" + ep, value: cmd.value == 0xFF ? "on" : "off", displayed: true)
+        if (cmd.value == 0xFF) {
             event = [createEvent([name: "switch", value: "on"])]
         } else {
             def allOff = true
@@ -171,19 +198,72 @@ def zwaveEvent(hubitat.zwave.commands.switchbinaryv1.SwitchBinaryReport cmd, ep 
                 event = [createEvent([name: "switch", value: "on"])]
             }
         }
-        return event
+        sendEvent(event)
+        return []
     } else {
-        def result = createEvent(name: "switch", value: cmd.value ? "on" : "off", type: "digital")
-        return [result] // returns the result of reponse()
+        def result = createEvent(name: "switch", value: cmd.value == 0xFF? "on" : "off", type: "digital")
+        sendEvent(result)
+        return [] // returns the result of reponse()
     }
 }
 
 def zwaveEvent(hubitat.zwave.commands.multichannelv3.MultiChannelCmdEncap cmd) {
-    log.debug "MultiChannelCmdEncap ${cmd}"
+    // log.debug "MultiChannelCmdEncap ${cmd}"
     def encapsulatedCommand = cmd.encapsulatedCommand(commandClassVersions)
     if (encapsulatedCommand) {
         zwaveEvent(encapsulatedCommand, cmd.sourceEndPoint as Integer)
     }
+}
+
+def zwaveEvent(hubitat.zwave.commands.supervisionv1.SupervisionReport cmd, ep = null )
+{
+    log.debug "SupervisionReport ${cmd} - ep ${ep}"
+    com.hubitat.app.DeviceWrapper targetDevice = getTargetDeviceByEndPoint(ep)
+
+    ConcurrentHashMap whatThisDeviceSent = supervisionSentCommands?.get(device.getDeviceNetworkId() as String)
+
+    switch (cmd.status as Integer)
+    {
+        case 0x00: // "No Support"
+            whatWasSent = whatThisDeviceSent?.remove(cmd.sessionID as Integer)
+            if (ignoreSupervisionNoSupportCode()) {
+                if (logEnable) log.warn "Received a 'No Support' supervision report ${cmd} for command ${whatWasSent}, but this device has known problems with its Supervision implementation so the 'No Support' code was ignored."
+            } else 	{
+                log.warn "Device ${targetDevice.displayName}: Z-Wave Command supervision reported as 'No Support' for command ${whatWasSent}. If you see this warning repeatedly, please report as an issue on https://github.com/jvmahon/HubitatCustom/issues. Please provide the manufacturer, deviceType, and deviceId code for your device as shown on the device's Hubitat device web page."
+            }
+            break
+        case 0x01: // "working"
+            whatWasSent = whatThisDeviceSent?.get(cmd.sessionID as Integer)
+            if (txtEnable) log.info "Device ${targetDevice.displayName}: Still processing command: ${whatWasSent}."
+            runIn(5, supervisionCheck)
+            break
+        case 0x02: // "Fail"
+            whatWasSent = whatThisDeviceSent?.remove(cmd.sessionID as Integer)
+            log.warn "Device ${targetDevice.displayName}: Z-Wave supervised command reported failure. Failed command: ${whatWasSent}."
+            sendUnsupervised(zwave.basicV1.basicGet(), ep)
+            break
+        case 0xFF: // "Success"
+            whatWasSent = whatThisDeviceSent?.remove(cmd.sessionID as Integer)
+            if (txtEnable || logEnable) log.info "Device ${targetDevice.displayName}: Device successfully processed supervised command ${whatWasSent}."
+            break
+    }
+    if (whatThisDeviceSent?.size() < 1) unschedule(supervisionCheck)
+}
+
+def zwaveEvent(hubitat.zwave.commands.supervisionv1.SupervisionGet cmd, ep = null ) {
+    //log.debug "SupervisionGet ${cmd} - ep ${ep}"
+    hubitat.zwave.Command encapsulatedCommand = cmd.encapsulatedCommand(defaultParseMap)
+
+    if (encapsulatedCommand) {
+        if ( ep ) {
+            zwaveEvent(encapsulatedCommand, ep)
+        } else {
+            zwaveEvent(encapsulatedCommand)
+        }
+    }
+
+    hubitat.zwave.Command confirmationReport = (new hubitat.zwave.commands.supervisionv1.SupervisionReport(sessionID: cmd.sessionID, reserved: 0, moreStatusUpdates: false, status: 0xFF, duration: 0))
+    sendHubCommand(new hubitat.device.HubAction(secure(confirmationReport, ep), hubitat.device.Protocol.ZWAVE))
 }
 
 def zwaveEvent(hubitat.zwave.commands.manufacturerspecificv2.ManufacturerSpecificReport cmd) {
@@ -257,10 +337,7 @@ def componentRefresh(cd) {
 
 def poll() {
     log.debug "poll()"
-    commands([
-            encap(zwave.switchBinaryV1.switchBinaryGet(), 1),
-            encap(zwave.switchBinaryV1.switchBinaryGet(), 2),
-    ])
+    refresh()
 }
 
 def refresh() {
@@ -288,29 +365,29 @@ def configure() {
 
 def integer2Cmd(value, size) {
     try{
-	switch(size) {
-	case 1:
-		[value]
-    break
-	case 2:
-    	def short value1   = value & 0xFF
-        def short value2 = (value >> 8) & 0xFF
-        [value2, value1]
-    break
-    case 3:
-    	def short value1   = value & 0xFF
-        def short value2 = (value >> 8) & 0xFF
-        def short value3 = (value >> 16) & 0xFF
-        [value3, value2, value1]
-    break
-	case 4:
-    	def short value1 = value & 0xFF
-        def short value2 = (value >> 8) & 0xFF
-        def short value3 = (value >> 16) & 0xFF
-        def short value4 = (value >> 24) & 0xFF
-		[value4, value3, value2, value1]
-	break
-	}
+        switch(size) {
+            case 1:
+                [value]
+                break
+            case 2:
+                short value1   = value & 0xFF
+                short value2 = (value >> 8) & 0xFF
+                [value2, value1]
+                break
+            case 3:
+                short value1   = value & 0xFF
+                short value2 = (value >> 8) & 0xFF
+                short value3 = (value >> 16) & 0xFF
+                [value3, value2, value1]
+                break
+            case 4:
+                short value1 = value & 0xFF
+                short value2 = (value >> 8) & 0xFF
+                short value3 = (value >> 16) & 0xFF
+                short value4 = (value >> 24) & 0xFF
+                [value4, value3, value2, value1]
+                break
+        }
     } catch (e) {
         log.debug "Error: integer2Cmd $e Value: $value"
     }
@@ -378,7 +455,7 @@ private commands(commands, delay = 500) {
     }, delay)
 }
 
-private channelNumber(String dni) {
+private static channelNumber(String dni) {
     dni.split("-ep")[-1] as Integer
 }
 private void createChildDevices() {
@@ -412,69 +489,68 @@ def setAssociationGroup(group, nodes, action, endpoint = null){
         log.error "Association group is invalid 1 <= ${group} <= ${maxAssociationGroup()}"
         return
     }
-    
+
     def associations = state."desiredAssociation${group}"?:[]
-    nodes.each { 
+    nodes.each {
         node = "${it}"
         switch (action) {
             case "Remove":
-            if (logEnable) log.debug "Removing node ${node} from association group ${group}"
-            associations = associations - node
-            break
+                if (logEnable) log.debug "Removing node ${node} from association group ${group}"
+                associations = associations - node
+                break
             case "Add":
-            if (logEnable) log.debug "Adding node ${node} to association group ${group}"
-            associations << node
-            break
+                if (logEnable) log.debug "Adding node ${node} to association group ${group}"
+                associations << node
+                break
         }
     }
     state."desiredAssociation${group}" = associations.unique()
-    return
 }
 
 def maxAssociationGroup(){
-   if (!state.associationGroups) {
-       if (logEnable) log.debug "Getting supported association groups from device"
-       zwave.associationV2.associationGroupingsGet() // execute the update immediately
-   }
-   (state.associationGroups?: 5) as int
+    if (!state.associationGroups) {
+        if (logEnable) log.debug "Getting supported association groups from device"
+        zwave.associationV2.associationGroupingsGet() // execute the update immediately
+    }
+    (state.associationGroups?: 5) as int
 }
 
 def processAssociations(){
-   def cmds = []
-   setDefaultAssociations()
-   def associationGroups = maxAssociationGroup()
-   for (int i = 1; i <= associationGroups; i++){
-      if(state."actualAssociation${i}" != null){
-         if(state."desiredAssociation${i}" != null || state."defaultG${i}") {
-            def refreshGroup = false
-            ((state."desiredAssociation${i}"? state."desiredAssociation${i}" : [] + state."defaultG${i}") - state."actualAssociation${i}").each {
-                if (logEnable) log.debug "Adding node $it to group $i"
-                cmds << zwave.associationV2.associationSet(groupingIdentifier:i, nodeId:hubitat.helper.HexUtils.hexStringToInt(it))
-                refreshGroup = true
+    def cmds = []
+    setDefaultAssociations()
+    def associationGroups = maxAssociationGroup()
+    for (int i = 1; i <= associationGroups; i++){
+        if(state."actualAssociation${i}" != null){
+            if(state."desiredAssociation${i}" != null || state."defaultG${i}") {
+                def refreshGroup = false
+                ((state."desiredAssociation${i}"? state."desiredAssociation${i}" : [] + state."defaultG${i}") - state."actualAssociation${i}").each {
+                    if (logEnable) log.debug "Adding node $it to group $i"
+                    cmds << zwave.associationV2.associationSet(groupingIdentifier:i, nodeId:hubitat.helper.HexUtils.hexStringToInt(it))
+                    refreshGroup = true
+                }
+                ((state."actualAssociation${i}" - state."defaultG${i}") - state."desiredAssociation${i}").each {
+                    if (logEnable) log.debug "Removing node $it from group $i"
+                    cmds << zwave.associationV2.associationRemove(groupingIdentifier:i, nodeId:hubitat.helper.HexUtils.hexStringToInt(it))
+                    refreshGroup = true
+                }
+                if (refreshGroup) cmds << zwave.associationV2.associationGet(groupingIdentifier:i)
+                else if (logEnable) log.debug "There are no association actions to complete for group $i"
             }
-            ((state."actualAssociation${i}" - state."defaultG${i}") - state."desiredAssociation${i}").each {
-                if (logEnable) log.debug "Removing node $it from group $i"
-                cmds << zwave.associationV2.associationRemove(groupingIdentifier:i, nodeId:hubitat.helper.HexUtils.hexStringToInt(it))
-                refreshGroup = true
-            }
-            if (refreshGroup == true) cmds << zwave.associationV2.associationGet(groupingIdentifier:i)
-            else if (logEnable) log.debug "There are no association actions to complete for group $i"
-         }
-      } else {
-         if (logEnable) log.debug "Association info not known for group $i. Requesting info from device."
-         cmds << zwave.associationV2.associationGet(groupingIdentifier:i)
-      }
-   }
-   return cmds
+        } else {
+            if (logEnable) log.debug "Association info not known for group $i. Requesting info from device."
+            cmds << zwave.associationV2.associationGet(groupingIdentifier:i)
+        }
+    }
+    return cmds
 }
 
 void zwaveEvent(hubitat.zwave.commands.associationv2.AssociationReport cmd) {
     def temp = []
     if (cmd.nodeId != []) {
-       cmd.nodeId.each {
-          temp += it.toString().format( '%02x', it.toInteger() ).toUpperCase()
-       }
-    } 
+        cmd.nodeId.each {
+            temp += it.toString().format( '%02x', it.toInteger() ).toUpperCase()
+        }
+    }
     state."actualAssociation${cmd.groupingIdentifier}" = temp
     log.debug "Associations for Group ${cmd.groupingIdentifier}: ${temp}"
     updateDataValue("associationGroup${cmd.groupingIdentifier}", "$temp")
@@ -489,7 +565,7 @@ def zwaveEvent(hubitat.zwave.commands.associationv2.AssociationGroupingsReport c
 void zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
     log.debug cmd
     if(cmd.applicationVersion && cmd.applicationSubVersion) {
-	    def firmware = "${cmd.applicationVersion}.${cmd.applicationSubVersion.toString().padLeft(2,'0')}"
+        def firmware = "${cmd.applicationVersion}.${cmd.applicationSubVersion.toString().padLeft(2,'0')}"
         state.needfwUpdate = "false"
         sendEvent(name: "status", value: "fw: ${firmware}")
         updateDataValue("firmware", firmware)
