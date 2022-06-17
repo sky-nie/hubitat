@@ -1,7 +1,7 @@
 /**
  *      Minoston Mini Outdoor Smart Plug v1.0.0(HUBITAT)
  *
- *  	Models: MP22Z/ZW96S
+ *  	Models: MP22Z
  *
  *  Author:
  *   winnie (sky-nie)

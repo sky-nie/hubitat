@@ -165,6 +165,22 @@ private secureCmd(cmd) {
     }
 }
 
+String secure(String cmd, ep = null ){
+    if (ep) {
+        return zwaveSecureEncap(zwave.multiChannelV4.multiChannelCmdEncap(sourceEndPoint: 0, bitAddress: 0, res01:0, destinationEndPoint: ep).encapsulate(cmd))
+    } else {
+        return zwaveSecureEncap(cmd)
+    }
+}
+
+String secure(hubitat.zwave.Command cmd, ep = null ){
+    if (ep) {
+        return zwaveSecureEncap(zwave.multiChannelV4.multiChannelCmdEncap(sourceEndPoint: 0, bitAddress: 0, res01:0, destinationEndPoint: ep).encapsulate(cmd))
+    } else {
+        return zwaveSecureEncap(cmd)
+    }
+}
+
 def parse(String description) {
     def result = []
     try {
@@ -213,6 +229,22 @@ def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
     def fullVersion = "${cmd.applicationVersion}.${subVersion}"
     sendEvent(name:  "firmwareVersion", value:  fullVersion)
     return []
+}
+
+def zwaveEvent(hubitat.zwave.commands.supervisionv1.SupervisionGet cmd, ep = null ) {
+    //log.debug "SupervisionGet ${cmd} - ep ${ep}"
+    hubitat.zwave.Command encapsulatedCommand = cmd.encapsulatedCommand(defaultParseMap)
+
+    if (encapsulatedCommand) {
+        if ( ep ) {
+            zwaveEvent(encapsulatedCommand, ep)
+        } else {
+            zwaveEvent(encapsulatedCommand)
+        }
+    }
+
+    hubitat.zwave.Command confirmationReport = (new hubitat.zwave.commands.supervisionv1.SupervisionReport(sessionID: cmd.sessionID, reserved: 0, moreStatusUpdates: false, status: 0xFF, duration: 0))
+    sendHubCommand(new hubitat.device.HubAction(secure(confirmationReport, ep), hubitat.device.Protocol.ZWAVE))
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
