@@ -1,7 +1,7 @@
 /**
  *      Minoston Mini Outdoor Smart Plug v1.0.0(HUBITAT)
  *
- *  	Models: MP22Z
+ *  	Models: MP22Z/ZW96S
  *
  *  Author:
  *   winnie (sky-nie)
@@ -51,6 +51,7 @@ metadata {
         attribute "syncStatus", "string"
 
         fingerprint mfr: "0312", prod: "FF00", deviceId: "FF07", deviceJoinName: "Minoston Outlet", ocfDeviceType: "oic.d.smartplug", inClusters:"0x5E,0x55,0x9F,0x6C" //MP22Z Minoston  Mini Outdoor Smart Plug
+        fingerprint mfr: "0312", prod: "FF00", deviceId: "FF07", deviceJoinName: "Minoston Outlet", ocfDeviceType: "oic.d.smartplug", inClusters:"0x86,0x25,0x70,0x85,0x8E,0x59,0x72,0x5A,0x87,0x73,0x7A" //MP22Z Minoston  Mini Outdoor Smart Plug
     }
 
     preferences {
@@ -164,6 +165,22 @@ private secureCmd(cmd) {
     }
 }
 
+String secure(String cmd, ep = null ){
+    if (ep) {
+        return zwaveSecureEncap(zwave.multiChannelV4.multiChannelCmdEncap(sourceEndPoint: 0, bitAddress: 0, res01:0, destinationEndPoint: ep).encapsulate(cmd))
+    } else {
+        return zwaveSecureEncap(cmd)
+    }
+}
+
+String secure(hubitat.zwave.Command cmd, ep = null ){
+    if (ep) {
+        return zwaveSecureEncap(zwave.multiChannelV4.multiChannelCmdEncap(sourceEndPoint: 0, bitAddress: 0, res01:0, destinationEndPoint: ep).encapsulate(cmd))
+    } else {
+        return zwaveSecureEncap(cmd)
+    }
+}
+
 def parse(String description) {
     def result = []
     try {
@@ -212,6 +229,22 @@ def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
     def fullVersion = "${cmd.applicationVersion}.${subVersion}"
     sendEvent(name:  "firmwareVersion", value:  fullVersion)
     return []
+}
+
+def zwaveEvent(hubitat.zwave.commands.supervisionv1.SupervisionGet cmd, ep = null ) {
+    //log.debug "SupervisionGet ${cmd} - ep ${ep}"
+    hubitat.zwave.Command encapsulatedCommand = cmd.encapsulatedCommand(defaultParseMap)
+
+    if (encapsulatedCommand) {
+        if ( ep ) {
+            zwaveEvent(encapsulatedCommand, ep)
+        } else {
+            zwaveEvent(encapsulatedCommand)
+        }
+    }
+
+    hubitat.zwave.Command confirmationReport = (new hubitat.zwave.commands.supervisionv1.SupervisionReport(sessionID: cmd.sessionID, reserved: 0, moreStatusUpdates: false, status: 0xFF, duration: 0))
+    sendHubCommand(new hubitat.device.HubAction(secure(confirmationReport, ep), hubitat.device.Protocol.ZWAVE))
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
