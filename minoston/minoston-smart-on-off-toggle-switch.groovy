@@ -1,5 +1,5 @@
 /**
- *  Minoston Smart on/off Toggle Switch v1.0.0(HUBITAT)
+ *  Minoston Smart on/off Toggle Switch v1.0.1(HUBITAT)
  *
  *  	Models: MS12ZS
  *
@@ -9,6 +9,9 @@
  *	Documentation:
  *
  *  Changelog:
+ *
+ *    1.0.1 (06/18/2022)
+ *      - fix a bug: the switch status is not fresh when it is controlled on the device
  *
  *    1.0.0 (03/19/2022)
  *      - Initial Release
@@ -50,7 +53,8 @@ metadata {
         attribute "firmwareVersion", "string"
         attribute "syncStatus", "string"
 
-        fingerprint mfr: "0312", prod: "EE00", deviceId: "EE03", deviceJoinName: "Minoston Switch", ocfDeviceType: "oic.d.switch", inClusters:"0x5E,0x25,0x70,0x5B,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x73,0x9F,0x6C,0x7A"    //MS12ZS Minoston Smart on/off Toggle Switch
+        fingerprint mfr: "0312", prod: "EE00", deviceId: "EE03", deviceJoinName: "Minoston Switch", ocfDeviceType: "oic.d.switch", inClusters:"0x5E,0x55,0x9F,0x6C"    //MS12ZS Minoston Smart on/off Toggle Switch
+        fingerprint mfr: "0312", prod: "EE00", deviceId: "EE03", deviceJoinName: "Minoston Switch", ocfDeviceType: "oic.d.switch", inClusters:"0x86,0x25,0x70,0x5B,0x85,0x8E,0x59,0x72,0x5A,0x73,0x7A"
     }
 
     preferences {

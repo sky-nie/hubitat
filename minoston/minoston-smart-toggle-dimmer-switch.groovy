@@ -1,5 +1,5 @@
 /**
- *      Minoston Smart Toggle Dimmer Switch v1.0.0(HUBITAT)
+ *      Minoston Smart Toggle Dimmer Switch v1.0.1(HUBITAT)
  *
  *  	Models: MS13ZS
  *
@@ -9,6 +9,9 @@
  *	Documentation:
  *
  *  Changelog:
+ *
+ *    1.0.1 (06/18/2022)
+ *      - fix a bug: the switch status is not fresh when it is controlled on the device
  *
  *    1.0.0 (03/19/2021)
  *      - Initial Release
@@ -52,7 +55,8 @@ metadata {
         attribute "lastCheckIn", "string"
         attribute "syncStatus", "string"
 
-        fingerprint mfr: "0312", prod: "EE00", deviceId: "EE04", deviceJoinName: "Minoston Dimmer Switch", ocfDeviceType: "oic.d.switch", inClusters:"0x5E,0x26,0x70,0x5B,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x87,0x73,0x9F,0x6C,0x7A"    //MS13ZS Minoston Smart Toggle Dimmer Switch
+        fingerprint mfr: "0312", prod: "EE00", deviceId: "EE04", deviceJoinName: "Minoston Dimmer Switch", ocfDeviceType: "oic.d.switch", inClusters:"0x5E,0x55,0x9F,0x6C"    //MS13ZS Minoston Smart Toggle Dimmer Switch
+        fingerprint mfr: "0312", prod: "EE00", deviceId: "EE04", deviceJoinName: "Minoston Dimmer Switch", ocfDeviceType: "oic.d.switch", inClusters:"0x86,0x26,0x70,0x5B,0x85,0x8E,0x59,0x72,0x5A,0x87,0x73,0x7A"
     }
 
     preferences {
@@ -137,6 +141,22 @@ def executeConfigureCmds() {
         sendHubCommand(new hubitat.device.HubMultiAction(delayBetween(cmds, 300), hubitat.device.Protocol.ZWAVE))
     }
     return []
+}
+
+String secure(String cmd, ep = null ){
+    if (ep) {
+        return zwaveSecureEncap(zwave.multiChannelV4.multiChannelCmdEncap(sourceEndPoint: 0, bitAddress: 0, res01:0, destinationEndPoint: ep).encapsulate(cmd))
+    } else {
+        return zwaveSecureEncap(cmd)
+    }
+}
+
+String secure(hubitat.zwave.Command cmd, ep = null ){
+    if (ep) {
+        return zwaveSecureEncap(zwave.multiChannelV4.multiChannelCmdEncap(sourceEndPoint: 0, bitAddress: 0, res01:0, destinationEndPoint: ep).encapsulate(cmd))
+    } else {
+        return zwaveSecureEncap(cmd)
+    }
 }
 
 def parse(String description) {
@@ -408,6 +428,22 @@ def zwaveEvent(hubitat.zwave.commands.versionv1.VersionReport cmd) {
     def fullVersion = "${cmd.applicationVersion}.${subVersion}"
     sendEvent(name: "firmwareVersion",  value:fullVersion, displayed: true, type:  null)
     return []
+}
+
+def zwaveEvent(hubitat.zwave.commands.supervisionv1.SupervisionGet cmd, ep = null ) {
+    //log.debug "SupervisionGet ${cmd} - ep ${ep}"
+    hubitat.zwave.Command encapsulatedCommand = cmd.encapsulatedCommand(defaultParseMap)
+
+    if (encapsulatedCommand) {
+        if ( ep ) {
+            zwaveEvent(encapsulatedCommand, ep)
+        } else {
+            zwaveEvent(encapsulatedCommand)
+        }
+    }
+
+    hubitat.zwave.Command confirmationReport = (new hubitat.zwave.commands.supervisionv1.SupervisionReport(sessionID: cmd.sessionID, reserved: 0, moreStatusUpdates: false, status: 0xFF, duration: 0))
+    sendHubCommand(new hubitat.device.HubAction(secure(confirmationReport, ep), hubitat.device.Protocol.ZWAVE))
 }
 
 def zwaveEvent(hubitat.zwave.commands.basicv1.BasicReport cmd) {
