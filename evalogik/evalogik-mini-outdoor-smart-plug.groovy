@@ -1,5 +1,5 @@
 /**
- *      Evalogik Mini Outdoor Smart Plug v1.0.0(HUBITAT)
+ *      Evalogik Mini Outdoor Smart Plug v1.0.1(HUBITAT)
  *
  *  	Models: ZW96S
  *
@@ -9,6 +9,9 @@
  *	Documentation:
  *
  *  Changelog:
+ *
+ *    1.0.1 (06/18/2022)
+ *      - fix a bug: the switch status is not fresh when it is controlled on the device
  *
  *    1.0.0 (03/19/2022)
  *      - Initial Release

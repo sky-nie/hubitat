@@ -1,7 +1,21 @@
 /**
- *  Outdoor Smart Plug 2-Channel ZW97
- *  Author: 
- *  Date: 
+ *      Outdoor Smart Plug 2-Channel ZW97 v1.0.1(HUBITAT)
+ *
+ *  	Models: ZW97
+ *
+ *  Author:
+ *   winnie (sky-nie)
+ *
+ *	Documentation:
+ *
+ *  Changelog:
+ *
+ *    1.0.1 (06/18/2022)
+ *      - fix a bug: the switch status is not fresh when it is controlled on the device
+ *
+ *    1.0.0 (03/19/2022)
+ *      - Initial Release
+ *
  *   Reference:https://raw.githubusercontent.com/InovelliUSA/Hubitat/master/Drivers/inovelli-2-channel-outdoor-smart-plug-nzw97.src/inovelli-2-channel-outdoor-smart-plug-nzw97.groovy
  *  Copyright 2020
  *
