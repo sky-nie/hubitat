@@ -8,6 +8,9 @@
  *
  *  Changelog:
  *
+ *    1.1.1 (07/08/2023)
+ *      - Add new ConfigParams for the configs with number from 9 to 13,
+ *        And the configParams are available for the devices with firmware version 1.20 and later
  *    1.0.0 (03/19/2022)
  *      - Initial Release
  *
@@ -57,10 +60,8 @@ metadata {
 
 		command "reset"
 
-		fingerprint mfr: "0312", prod: "FF00", model: "FF0E", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x5E,0x55,0x9F,0x6C"  //Mini Smart Plug Meter, MP21ZP
-		fingerprint mfr: "0312", prod: "FF00", model: "FF0E", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x86,0x25,0x70,0x85,0x8E,0x59,0x32,0x71,0x72,0x5A,0x87,0x73,0x7A"
-		fingerprint mfr: "0312", prod: "FF00", model: "FF0F", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x5E,0x55,0x9F,0x6C"//Mini Smart Plug Meter, MP22ZP
-		fingerprint mfr: "0312", prod: "FF00", model: "FF0F", deviceJoinName: "Minoston Outlet Meter", inClusters:"0x86,0x25,0x70,0x85,0x8E,0x59,0x32,0x71,0x72,0x5A,0x87,0x73,0x7A"
+		fingerprint mfr: "0312", prod: "AC01", model: "4003", deviceJoinName: "New One Outlet Meter", inClusters:"0x5E,0x55,0x9F,0x6C"  //Mini Power Meter Plug, N4003
+		fingerprint mfr: "0312", prod: "AC01", model: "4003", deviceJoinName: "New One Outlet Meter", inClusters:"0x86,0x25,0x70,0x85,0x8E,0x59,0x32,0x71,0x72,0x5A,0x87,0x73,0x7A"
 	}
 
 	preferences {
@@ -452,7 +453,12 @@ private getConfigParams() {
 		powerValueChangeParam,
 		powerReportIntervalParam,
 		currentReportParam,
-		electricityReportParam
+		electricityReportParam,
+		indicatorBrightnessParam,
+		disablePowerReportParam,
+		disableCurrentReportParam,
+		currentsReportFrequencyParam,
+		voltageReportFrequencyParam
     ]
 }
 
@@ -486,6 +492,26 @@ private getCurrentReportParam() {
 
 private getElectricityReportParam() {
 	return getParam(8, "Energy(KWH) Report Value Change(1[DEFAULT] - 100:0.01KWH - 1KWH)", 1, 1, null, "1..100")
+}
+
+private getIndicatorBrightnessParam() {
+	return getParam(9, "Indicator brightness", 1, 2, indicatorBrightnessOptions)
+}
+
+private getDisablePowerReportParam() {
+	return getParam(10, "Disable power report", 1, 0, disablePowerReportOptions)
+}
+
+private getDisableCurrentReportParam() {
+	return getParam(11, "Disable currents report", 1, 0, disableCurrentReportOptions)
+}
+
+private getCurrentsReportFrequencyParam() {
+	return getParam(12, "Report frequency of currents", 4, 60, null, "1..65535")
+}
+
+private getVoltageReportFrequencyParam() {
+	return getParam(13, "Report frequency of voltage", 4, 60, null, "0..65535")
 }
 
 private getParam(num, name, size, defaultVal, options=null, range=null) {
@@ -524,6 +550,28 @@ private static getPowerFailureRecoveryOptions() {
 			0:"Remember last status",
 			1:"Turn Off",
 			2:"Turn On"
+	]
+}
+
+private static getIndicatorBrightnessOptions() {
+	return [
+			0:"High level",
+			1:"Mid level",
+			2:"Low level"
+	]
+}
+
+private static getDisablePowerReportOptions() {
+	return [
+			0:"Enable power report",
+			1:"Disable power report"
+	]
+}
+
+private static getDisableCurrentReportOptions() {
+	return [
+			0:"Enable currents report",
+			1:"Disable currents report"
 	]
 }
 
