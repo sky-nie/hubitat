@@ -8,6 +8,9 @@
  *
  *  Changelog:
  *
+ *    1.1.1 (07/08/2023)
+ *      - Add new ConfigParams for the configs with number from 9 to 13,
+ *        And the configParams are available for the devices with firmware version 1.20 and later
  *    1.0.0 (03/19/2022)
  *      - Initial Release
  *
@@ -26,7 +29,7 @@
  */
 metadata {
 	definition (
-            name: "Minoston Smart Plug Meter(MP21ZP && MP22ZP)",
+            name: "Minoston Smart Plug Meter(MP21ZP & MP22ZP)",
             namespace: "sky-nie",
             author: "winnie",
             importUrl: "https://raw.githubusercontent.com/sky-nie/hubitat/main/minoston/minoston-smart-plug-meter.groovy"
@@ -452,7 +455,12 @@ private getConfigParams() {
 		powerValueChangeParam,
 		powerReportIntervalParam,
 		currentReportParam,
-		electricityReportParam
+		electricityReportParam,
+		indicatorBrightnessParam,
+		disablePowerReportParam,
+		disableCurrentReportParam,
+		currentsReportFrequencyParam,
+		voltageReportFrequencyParam
     ]
 }
 
@@ -486,6 +494,26 @@ private getCurrentReportParam() {
 
 private getElectricityReportParam() {
 	return getParam(8, "Energy(KWH) Report Value Change(1[DEFAULT] - 100:0.01KWH - 1KWH)", 1, 1, null, "1..100")
+}
+
+private getIndicatorBrightnessParam() {
+	return getParam(9, "Indicator brightness", 1, 2, indicatorBrightnessOptions)
+}
+
+private getDisablePowerReportParam() {
+	return getParam(10, "Disable power report", 1, 0, disablePowerReportOptions)
+}
+
+private getDisableCurrentReportParam() {
+	return getParam(11, "Disable currents report", 1, 0, disableCurrentReportOptions)
+}
+
+private getCurrentsReportFrequencyParam() {
+	return getParam(12, "Report frequency of currents", 4, 60, null, "1..65535")
+}
+
+private getVoltageReportFrequencyParam() {
+	return getParam(13, "Report frequency of voltage", 4, 60, null, "0..65535")
 }
 
 private getParam(num, name, size, defaultVal, options=null, range=null) {
@@ -524,6 +552,28 @@ private static getPowerFailureRecoveryOptions() {
 			0:"Remember last status",
 			1:"Turn Off",
 			2:"Turn On"
+	]
+}
+
+private static getIndicatorBrightnessOptions() {
+	return [
+			0:"High level",
+			1:"Mid level",
+			2:"Low level"
+	]
+}
+
+private static getDisablePowerReportOptions() {
+	return [
+			0:"Enable power report",
+			1:"Disable power report"
+	]
+}
+
+private static getDisableCurrentReportOptions() {
+	return [
+			0:"Enable currents report",
+			1:"Disable currents report"
 	]
 }
 
