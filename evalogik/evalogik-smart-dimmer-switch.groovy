@@ -54,7 +54,7 @@ metadata {
         attribute "firmwareVersion", "string"
         attribute "lastCheckIn", "string"
         attribute "syncStatus", "string"
-
+        fingerprint mfr: "0312", prod: "EE00", deviceId: "EE02", deviceJoinName: "Evalogik Dimmer Switch", ocfDeviceType: "oic.d.switch", inClusters:"0x5E,0x26,0x70,0x5B,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x87,0x73,0x9F,0x6C,0x7A"
         fingerprint mfr: "0312", prod: "BB00", deviceId: "BB02", deviceJoinName: "Evalogik Dimmer Switch", ocfDeviceType: "oic.d.switch", inClusters:"0x5E,0x26,0x70,0x5B,0x85,0x8E,0x59,0x55,0x86,0x72,0x5A,0x87,0x73,0x9F,0x6C,0x7A"    //ZW31S Evalogik Smart Dimmer Switch
     }
 
